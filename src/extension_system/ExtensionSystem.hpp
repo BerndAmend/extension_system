@@ -16,10 +16,6 @@
 #include <memory>
 #include <mutex>
 
-#include <extension_system/TypeSystem.hpp>
-
-#include <extension_system/Extension.hpp>
-
 #include <extension_system/DynamicLibrary.hpp>
 
 namespace extension_system {
@@ -89,7 +85,7 @@ namespace extension_system {
 	 * @brief The ExtensionSystem class
 	 * thread-safe
 	 */
-	class EXTENSION_SYSTEM_API ExtensionSystem {
+	class ExtensionSystem {
 	public:
 		ExtensionSystem();
 		ExtensionSystem(const ExtensionSystem&) =delete;
@@ -120,7 +116,7 @@ namespace extension_system {
 		 */
 		template<class T>
 		std::vector<ExtensionDescription> extensions() {
-			return _extensions(extension_system::TypeSystem<T>::getString());
+			return _extensions(extension_system::InterfaceName<T>::getString());
 		}
 
 		/**
@@ -133,7 +129,7 @@ namespace extension_system {
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
 			std::unique_lock<std::mutex> lock(_mutex);
 			auto desc = _findDescription(name, version);
-			if( desc != nullptr && desc->interface_name() == extension_system::TypeSystem<T>::getString() ) {
+			if( desc != nullptr && desc->interface_name() == extension_system::InterfaceName<T>::getString() ) {
 				return _createExtension<T>(name, version);
 			}
 			return std::shared_ptr<T>();
@@ -148,7 +144,7 @@ namespace extension_system {
 		std::shared_ptr<T> createExtension(const std::string &name) {
 			std::unique_lock<std::mutex> lock(_mutex);
 			auto desc = _findDescription(name);
-			if( desc != nullptr && desc->interface_name() == extension_system::TypeSystem<T>::getString() ) {
+			if( desc != nullptr && desc->interface_name() == extension_system::InterfaceName<T>::getString() ) {
 				return _createExtension<T>(name, desc->version());
 			}
 			return std::shared_ptr<T>();

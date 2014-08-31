@@ -8,7 +8,7 @@
 */
 #pragma once
 
-#include <extension_system/TypeSystem.hpp>
+#include <extension_system/Extension.hpp>
 
 class IExt1
 {
@@ -16,14 +16,15 @@ public:
 	virtual void test1() = 0;
 	virtual ~IExt1() {}
 };
+EXTENSION_SYSTEM_INTERFACE(IExt1)
 
-EXTENSION_SYSTEM_DECLARE_TYPE(IExt1, 'I','E','x','1')
+namespace extension_system {
+	class IExt2
+	{
+	public:
+		virtual void test2() = 0;
+		virtual ~IExt2() {}
+	};
+}
 
-class IExt2
-{
-public:
-	virtual void test2() = 0;
-	virtual ~IExt2() {}
-};
-
-EXTENSION_SYSTEM_DECLARE_TYPE(IExt2, 'I','E','x','2')
+EXTENSION_SYSTEM_INTERFACE(extension_system::IExt2)

@@ -6,7 +6,6 @@
 		(See accompanying file LICENSE_1_0.txt or copy at
 		http://www.boost.org/LICENSE_1_0.txt)
 */
-#include <extension_system/Extension.hpp>
 #include "Interfaces.hpp"
 #include <iostream>
 
@@ -19,23 +18,25 @@ public:
 };
 EXTENSION_SYSTEM_EXTENSION(IExt1, Ext1, "Ext1", 100, "extension 1 for testing purposes", "")
 
-class Ext1_1 : public IExt1
-{
-public:
-	void test1() override {
-		std::cout<<"Hello from Ext1_1"<<std::endl;
-	}
-};
-EXTENSION_SYSTEM_EXTENSION(IExt1, Ext1_1, "Ext1", 110, "extension 2 for testing purposes", "")
+namespace test_namespace {
+	class Ext1_1 : public IExt1
+	{
+	public:
+		void test1() override {
+			std::cout<<"Hello from Ext1_1"<<std::endl;
+		}
+	};
+}
+EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extension 2 for testing purposes", "")
 
-class Ext2 : public IExt2
+class Ext2 : public extension_system::IExt2
 {
 public:
 	void test2() override {
 		std::cout<<"Hello from Ext2"<<std::endl;
 	}
 };
-EXTENSION_SYSTEM_EXTENSION(IExt2, Ext2, "Ext2", 100, "extension 3 for testing purposes",
+EXTENSION_SYSTEM_EXTENSION(extension_system::IExt2, Ext2, "Ext2", 100, "extension 3 for testing purposes",
 				   EXTENSION_SYSTEM_EXTENSION_DESCRIPTION_ENTRY("Test1", "desc1")
 				   EXTENSION_SYSTEM_EXTENSION_DESCRIPTION_ENTRY("Test2", "desc2")
 				   EXTENSION_SYSTEM_EXTENSION_DESCRIPTION_ENTRY("Test3", "desc3"))

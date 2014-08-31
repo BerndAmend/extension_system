@@ -167,14 +167,3 @@
 #else
 	#define EXTENSION_SYSTEM_NORETURN
 #endif
-
-// Export macros
-#ifndef EXTENSION_SYSTEM_LIB
-#  ifdef EXTENSION_SYSTEM_EXPORTS
-#    define EXTENSION_SYSTEM_API EXTENSION_SYSTEM_EXPORT
-#  else
-#    define EXTENSION_SYSTEM_API EXTENSION_SYSTEM_IMPORT
-#  endif
-#else
-#  define EXTENSION_SYSTEM_API
-#endif

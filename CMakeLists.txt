@@ -87,13 +87,12 @@ include_directories(src)
 # library
 add_library(ExtensionSystem STATIC
 						src/extension_system/DynamicLibrary.cpp
-						src/extension_system/Extension.hpp
-						src/extension_system/ExtensionSystem.hpp
+						src/extension_system/Extension.hpp			#PUBLIC_HEADER
+						src/extension_system/ExtensionSystem.hpp	#PUBLIC_HEADER
 						src/extension_system/filesystem.cpp
-						src/extension_system/macros.hpp
-						src/extension_system/DynamicLibrary.hpp
+						src/extension_system/macros.hpp				#PUBLIC_HEADER
+						src/extension_system/DynamicLibrary.hpp		#PUBLIC_HEADER
 						src/extension_system/ExtensionSystem.cpp
-						src/extension_system/TypeSystem.hpp
 						src/extension_system/filesystem.hpp
 						src/extension_system/string.hpp)
 target_link_libraries(ExtensionSystem ${CMAKE_DL_LIBS})

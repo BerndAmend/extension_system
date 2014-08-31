@@ -8,15 +8,12 @@
 */
 #pragma once
 
-#include <extension_system/macros.hpp>
-
 #include <string>
 #include <functional>
-#include <memory>
 
 namespace extension_system {
 
-	class EXTENSION_SYSTEM_API DynamicLibrary {
+	class DynamicLibrary {
 	public:
 		DynamicLibrary(const std::string &filename);
 		DynamicLibrary(const DynamicLibrary&) =delete;

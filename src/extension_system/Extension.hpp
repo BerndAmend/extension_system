@@ -46,3 +46,14 @@
 	EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, \
 		EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(extension_system_entry_point_, __LINE__), _), __COUNTER__))
 
+// Interface helper
+namespace extension_system {
+	template<typename T> struct InterfaceName {
+		// You have to call EXTENSION_SYSTEM_INTERFACE(T) for your interface
+	};
+}
+
+/**
+ * You have to call this macro with the fully qualified typename in the root namespace
+ */
+#define EXTENSION_SYSTEM_INTERFACE(T) namespace extension_system { template<> struct InterfaceName<T> { inline static const char *getString() { return #T ; } };}
