@@ -15,6 +15,7 @@
 #include <mutex>
 
 #include <extension_system/macros.hpp>
+#include <extension_system/Extension.hpp>
 #include <extension_system/DynamicLibrary.hpp>
 
 namespace extension_system {
