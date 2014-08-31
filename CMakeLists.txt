@@ -4,9 +4,9 @@
 # http://www.boost.org/LICENSE_1_0.txt)
 cmake_minimum_required(VERSION 2.8)
 
-project(ExtensionSystem)
+project(extension_system)
 
-if(CMAKE_PROJECT_NAME STREQUAL "ExtensionSystem")
+if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 	set(EXTENSION_SYSTEM_IS_STANDALONE ON)
 endif()
 
@@ -92,32 +92,32 @@ set(EXTENSION_SYSTEM_PUBLIC_HEADERS
 						src/extension_system/ExtensionSystem.hpp
 						)
 
-add_library(ExtensionSystem STATIC
+add_library(extension_system STATIC
 						${EXTENSION_SYSTEM_PUBLIC_HEADERS}
 						src/extension_system/DynamicLibrary.cpp
 						src/extension_system/filesystem.cpp
 						src/extension_system/ExtensionSystem.cpp
 						src/extension_system/filesystem.hpp
 						src/extension_system/string.hpp)
-target_link_libraries(ExtensionSystem ${CMAKE_DL_LIBS})
+target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
-set_target_properties(ExtensionSystem PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
+set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
 	# Test library
-	add_library(ExtensionSystemTestLib SHARED test/extension.cpp test/Interfaces.hpp)
+	add_library(extension_system_test_lib SHARED test/extension.cpp test/Interfaces.hpp)
 
 	# Test program
-	add_executable(ExtensionSystemTest test/main.cpp test/Interfaces.hpp)
-	target_link_libraries(ExtensionSystemTest ExtensionSystem)
+	add_executable(extension_system_test test/main.cpp test/Interfaces.hpp)
+	target_link_libraries(extension_system_test extension_system)
 
 	if(EXTENSION_SYSTEM_COMPILER_MSVC)
-		set_target_properties(ExtensionSystem PROPERTIES DEBUG_POSTFIX d)
-		set_target_properties(ExtensionSystemTestLib PROPERTIES DEBUG_POSTFIX d)
-		set_target_properties(ExtensionSystemTest PROPERTIES DEBUG_POSTFIX d)
+		set_target_properties(extension_system PROPERTIES DEBUG_POSTFIX d)
+		set_target_properties(extension_system_test_lib PROPERTIES DEBUG_POSTFIX d)
+		set_target_properties(extension_system_test PROPERTIES DEBUG_POSTFIX d)
 	endif()
 
-	install(TARGETS ExtensionSystem
+	install(TARGETS extension_system
 		ARCHIVE DESTINATION lib
 		LIBRARY DESTINATION lib
 		RUNTIME DESTINATION bin
@@ -134,7 +134,7 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 	endif()
 
 	# CPACK
-	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Extension System")
+	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "extension_system")
 	set(CPACK_PACKAGE_VENDOR "Bernd Amend and Michael Adam")
 	#set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")
 	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE_1_0.txt")
