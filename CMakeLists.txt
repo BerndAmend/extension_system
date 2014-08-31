@@ -103,6 +103,10 @@ target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 
+if(NOT EXTENSION_SYSTEM_COMPILER_MSVC)
+	set_target_properties(extension_system PROPERTIES COMPILE_FLAGS "-fPIC")
+endif()
+
 if(EXTENSION_SYSTEM_IS_STANDALONE)
 	# Test library
 	add_library(extension_system_test_lib SHARED test/extension.cpp test/Interfaces.hpp)
