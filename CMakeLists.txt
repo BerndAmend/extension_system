@@ -85,17 +85,23 @@ endif()
 include_directories(src)
 
 # library
+set(EXTENSION_SYSTEM_PUBLIC_HEADERS
+						src/extension_system/macros.hpp
+						src/extension_system/Extension.hpp
+						src/extension_system/DynamicLibrary.hpp
+						src/extension_system/ExtensionSystem.hpp
+						)
+
 add_library(ExtensionSystem STATIC
+						${EXTENSION_SYSTEM_PUBLIC_HEADERS}
 						src/extension_system/DynamicLibrary.cpp
-						src/extension_system/Extension.hpp			#PUBLIC_HEADER
-						src/extension_system/ExtensionSystem.hpp	#PUBLIC_HEADER
 						src/extension_system/filesystem.cpp
-						src/extension_system/macros.hpp				#PUBLIC_HEADER
-						src/extension_system/DynamicLibrary.hpp		#PUBLIC_HEADER
 						src/extension_system/ExtensionSystem.cpp
 						src/extension_system/filesystem.hpp
 						src/extension_system/string.hpp)
 target_link_libraries(ExtensionSystem ${CMAKE_DL_LIBS})
+
+set_target_properties(ExtensionSystem PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
 	# Test library
@@ -114,7 +120,8 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 	install(TARGETS ExtensionSystem
 		ARCHIVE DESTINATION lib
 		LIBRARY DESTINATION lib
-		RUNTIME DESTINATION bin)
+		RUNTIME DESTINATION bin
+		PUBLIC_HEADER DESTINATION include/extension_system)
 
 
 	find_package(Doxygen)

@@ -8,14 +8,13 @@
 */
 #pragma once
 
-#include <extension_system/macros.hpp>
-
 #include <sstream>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
 
+#include <extension_system/macros.hpp>
 #include <extension_system/DynamicLibrary.hpp>
 
 namespace extension_system {
