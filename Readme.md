@@ -31,8 +31,13 @@ For developing an extension one needs:
 * An interface class marked as Extension System interface by `EXTENSION_SYSTEM_INTERFACE` macro
 * A class that implements this interface exported by `EXTENSION_SYSTEM_EXTENSION` macro
 
-Thus, one only needs to include `<extension_system/Extension.hpp>`. **There is no linkage against libraries necessary.**
-
-
+Thus, one only needs to include `<extension_system/Extension.hpp>`. **No linking against Extension System libraries necessary.**
 
 ### Using extensions
+
+
+
+## Limitations
+
+* Extension System is unable to handle compressed shared libraries
+* Extension System is unable to check extension's dependencies 
