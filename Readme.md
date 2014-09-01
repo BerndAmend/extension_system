@@ -16,7 +16,7 @@ During scanning for extension, following metadata is extracted for each extensio
 * Build type (text, "release"/"debug")
 * User-specific metadata
 
-Extension System provides a user access to all this metadata.
+Extension System provides access to all this metadata.
 
 In order to instantiate an extension, a user has to provide:
 
@@ -94,6 +94,7 @@ EXTENSION_SYSTEM_EXTENSION(Interface1, Extension1, "Extension1", 100, "extension
 main.cpp
 ```C++
 #include "Interface.hpp"
+#include <iostream>
 
 int main() {
     extension_system::ExtensionSystem extensionSystem;
