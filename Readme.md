@@ -6,10 +6,10 @@ An extension contains:
 
 * Implementation 
 * Metadata:
-  * Name
-  * Description
-  * Version number
-  * User-specific metadata
+    * Name
+    * Description
+    * Version number
+    * User-specific metadata
 
 ### User-specific metadata
 While developing extensions using Extension System, a user is able to export extension-specific metadata. 
@@ -36,4 +36,3 @@ Thus, one only needs to include `<extension_system/Extension.hpp>`. **There is n
 
 
 ### Using extensions
-
