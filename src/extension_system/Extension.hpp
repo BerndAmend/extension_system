@@ -46,6 +46,17 @@
  * Helper macro to make extension export more readable
  */
 #define EXTENSION_SYSTEM_NO_USER_DATA ""
+
+/**
+ * Export an extension.
+ * \param _inteface fully qualified name of interface class (name with all namespaces)
+ * \param _classname name of class to be exported
+ * \param _name name of extension, used to instantiate an extension
+ * \param _version version number of extension (by default extension system instantiates the highest version of an extension)
+ * \param _description description of extension
+ * \param _user_defined user defined metadata. Metadata can be defined by not comma separated calls of EXTENSION_SYSTEM_DESCRIPTION_ENTRY.
+ *        If no user defined metadata is necessary, use EXTENSION_SYSTEM_NO_USER_DATA.
+ */
 #define EXTENSION_SYSTEM_EXTENSION(_interface, _classname, _name, _version, _description, _user_defined) \
 	EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, \
 		EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(extension_system_entry_point_, __LINE__), _), __COUNTER__))
