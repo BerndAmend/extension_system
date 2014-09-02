@@ -42,6 +42,10 @@
 		return new _classname;\
 	}
 
+/**
+ * Helper macro to make extension export more readable
+ */
+#define EXTENSION_SYSTEM_NO_USER_DATA ""
 #define EXTENSION_SYSTEM_EXTENSION(_interface, _classname, _name, _version, _description, _user_defined) \
 	EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, \
 		EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(extension_system_entry_point_, __LINE__), _), __COUNTER__))
