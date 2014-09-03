@@ -5,7 +5,7 @@
 int main() {
 	extension_system::ExtensionSystem extensionSystem;
 	extensionSystem.searchDirectory("./");
-	std::shared_ptr<Interface1> e1 = extensionSystem.createExtension<Interface1>("Extension1");
+	std::shared_ptr<Interface1> e1 = extensionSystem.createExtension<Interface1>("Example1Extension");
 	if(e1 != nullptr)
 		e1->test1();
 	std::cout<<"Done."<<std::endl;

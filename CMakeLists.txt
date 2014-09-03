@@ -116,7 +116,8 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 	target_link_libraries(extension_system_test extension_system)
 
 	# Examples
-	add_library(extension_system_example1_extension SHARED examples/example1/Extension1.cpp examples/example1/Interface.hpp)
+	## Example 1
+	add_library(extension_system_example1_extension SHARED examples/example1/Extension.cpp examples/example1/Interface.hpp)
 	add_executable(extension_system_example1 examples/example1/main.cpp examples/example1/Interface.hpp)
 	target_link_libraries(extension_system_example1 extension_system)
 	
