@@ -26,32 +26,52 @@ const std::string desc_end = desc_base + "END";
 const std::string upx_string = "UPX";
 const std::string upx_exclamation_mark_string = upx_string + "!";
 
-ExtensionSystem::ExtensionSystem()
-	: _verify_compiler(true), _debug_messages(false) {}
-
-bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
-	std::unique_lock<std::mutex> lock(_mutex);
+static std::string getRealFilename(const std::string &filename) {
 	filesystem::path filen(filename);
 
 	if (!filesystem::exists(filen)) { // check if the file exists
 		if(filesystem::exists(filesystem::path(filename + DynamicLibrary::fileExtension()))) {
 			filen = filename + DynamicLibrary::fileExtension();
 		} else {
-			if(_debug_messages)
-				std::cerr<<"ExtensionSystem addDynamicLibrary file doesn't exist filename="<<(filename + DynamicLibrary::fileExtension())<<std::endl;
-			return false;
+			return "";
 		}
-		if(_debug_messages)
-			std::cerr<<"ExtensionSystem addDynamicLibrary file doesn't exist filename="<<filename<<std::endl;
 	}
 
-	if(filesystem::is_directory(filen)) {
+	return canonical(filen).generic_string();
+}
+
+ExtensionSystem::ExtensionSystem()
+	: _verify_compiler(true), _debug_messages(false) {}
+
+ExtensionSystem::~ExtensionSystem()
+{
+	if(_debug_messages && !_loadedExtensions.empty()) {
+		std::cerr<<"Error: Not all extensions created by the ExtensionSystem were destroyed before destroying it"<<std::endl;
+		std::cerr<<"The following extensions were still loaded: "<<std::endl;
+		for(auto &ext : _loadedExtensions) {
+			std::cerr<<"address= "<<ext.first<<std::endl;
+			std::cerr<<ext.second._desc<<std::endl;
+		}
+	}
+}
+
+bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
+	std::unique_lock<std::mutex> lock(_mutex);
+
+	std::string filePath = getRealFilename(filename);
+
+	if(filePath.empty()) {
+		if(_debug_messages)
+			std::cerr<<"ExtensionSystem addDynamicLibrary neither "<<filename
+					 <<" nor "<<(filename + DynamicLibrary::fileExtension())<<" exist."<<std::endl;
+		return false;
+	}
+
+	if(filesystem::is_directory(filePath)) {
 		if(_debug_messages)
 			std::cerr<<"ExtensionSystem addDynamicLibrary doesn't support adding directories directory="<<filename<<std::endl;
 		return false;
 	}
-
-	std::string filePath = canonical(filen).generic_string();
 
 	auto already_loaded = _knownExtensions.find(filePath);
 
@@ -119,8 +139,8 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 				failed = true;
 				break;
 			}
-			std::string key = iter->substr(0, pos);
-			std::string value = iter->substr(pos+1);
+			const auto key = iter.substr(0, pos);
+			const auto value = iter.substr(pos+1);
 			if(result.find(key) != result.end()) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" duplicate key ("<<key<<") found. Ignore entry"<<std::endl;
@@ -226,6 +246,15 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 		return false;
 	}
+}
+
+void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
+{
+	std::unique_lock<std::mutex> lock(_mutex);
+	auto real_filename = getRealFilename(filename);
+	auto iter = _knownExtensions.find(real_filename);
+	if(iter != _knownExtensions.end())
+		_knownExtensions.erase(iter);
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path ) {

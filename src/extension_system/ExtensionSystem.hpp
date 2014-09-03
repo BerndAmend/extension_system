@@ -97,8 +97,9 @@ namespace extension_system {
 	class ExtensionSystem {
 	public:
 		ExtensionSystem();
-		ExtensionSystem(const ExtensionSystem&) =delete;
-		ExtensionSystem& operator=(const ExtensionSystem&) =delete;
+		ExtensionSystem(const ExtensionSystem&) = delete;
+		~ExtensionSystem();
+		ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
 		/**
 		 * @brief addDynamicLibrary
@@ -109,11 +110,19 @@ namespace extension_system {
 		bool addDynamicLibrary(const std::string &filename);
 
 		/**
+		 * @brief removeDynamicLibrary
+		 *	removes all extensions provided by the library from the list of known extensions
+		 *	already loaded extensions are not affected by this call
+		 * @param filename
+		 */
+		void removeDynamicLibrary(const std::string &filename);
+
+		/**
 		 * add a directory to extension-search-path
 		 * after adding, the given path is checked for extensions
 		 * @param path path to search in for extensions
 		 */
-		void searchDirectory(const std::string& path);
+		void searchDirectory(const std::string &path);
 
 		/**
 		 * get a list of all known extensions
@@ -180,7 +189,7 @@ namespace extension_system {
 		template<class T>
 		void freeExtension( T *extension ) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			if( extension == nullptr ) //HINT: better do an assert here?
+			if( extension == nullptr )
 				return;
 
 			auto i = _loadedExtensions.find(extension);
@@ -224,8 +233,10 @@ namespace extension_system {
 							} else {
 								i.second.references++;
 								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
-								// FIXME: the following line is broken
-								// it will crash if the object is still alive when the ExtensionSystem is destroyed
+								// The following line will crash if you destroy the ExtensionSystem if
+								// extensions are still alive and destroyed afterwards
+								// if you enable debug messages (setDebugMessages(true))
+								// the dtor will report which objects were still alive
 								return std::shared_ptr<T>(ex, [&](T *obj){freeExtension(obj);});
 							}
 						}
