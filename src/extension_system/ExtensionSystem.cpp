@@ -111,11 +111,11 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
-		for(auto iter = strs.begin(); iter != strs.end(); ++iter) {
-			std::size_t pos = iter->find('=');
+		for(auto &iter : strs) {
+			std::size_t pos = iter.find('=');
 			if(pos == std::string::npos) {
 				if(_debug_messages)
-					std::cerr<<"ExtensionSystem filename="<<filename<<" '=' is missing ("<<*iter<<"). Ignore entry."<<std::endl;
+					std::cerr<<"ExtensionSystem filename="<<filename<<" '=' is missing ("<<iter<<"). Ignore entry."<<std::endl;
 				failed = true;
 				break;
 			}
@@ -143,8 +143,8 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	}
 
 	std::vector<ExtensionDescription> extension_list;
-	for(auto iter=data.begin(); iter != data.end(); ++iter) {
-		ExtensionDescription desc(*iter);
+	for(auto &iter : data) {
+		ExtensionDescription desc(iter);
 		if(		!_verify_compiler  ||
 				(desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
 #if defined(EXTENSION_SYSTEM_COMPILER_GPLUSPLUS) || defined(EXTENSION_SYSTEM_COMPILER_CLANG)
@@ -227,22 +227,19 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path ) {
-	auto content = filesystem::getDirectoryContent(path);
-	for(auto p : content) {
-		if (p.extension().string() == DynamicLibrary::fileExtension() ) {
+	for(auto &p : filesystem::getDirectoryContent(path))
+		if (p.extension().string() == DynamicLibrary::fileExtension())
 			addDynamicLibrary(p.string());
-		}
-	}
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions() {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 
-	for( auto i = _knownExtensions.begin(); i != _knownExtensions.end(); i++ ) {
-		for( auto j = i->second.extensions.begin(); j != i->second.extensions.end(); j++)
-			list.push_back(*j);
-	}
+	for(auto &i : _knownExtensions)
+		for(auto &j : i.second.extensions)
+			list.push_back(j);
+
 	return list;
 }
 
@@ -250,41 +247,37 @@ std::vector<ExtensionDescription> ExtensionSystem::_extensions(const std::string
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> result;
 
-	for( auto i = _knownExtensions.begin(); i != _knownExtensions.end(); i++ ) {
-		for( auto j = i->second.extensions.begin(); j != i->second.extensions.end(); j++) {
-			if( j->interface_name() == interface_name )
-				result.push_back(*j);
-		}
-	}
+	for(auto &i : _knownExtensions)
+		for(auto &j : i.second.extensions)
+			if(j.interface_name() == interface_name)
+				result.push_back(j);
+
 	return result;
 }
 
-const ExtensionDescription *ExtensionSystem::_findDescription( const std::string& name, unsigned int version ) const {
-	for( auto i = _knownExtensions.begin(); i != _knownExtensions.end(); i++ ) {
-		for( auto j = i->second.extensions.begin(); j != i->second.extensions.end(); j++) {
-			if( j->name() == name && j->version() == version ) {
-				return &*j;
-			}
-		}
-	}
-	return nullptr;
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
+	for(auto &i : _knownExtensions)
+		for(auto &j : i.second.extensions)
+			if(j.interface_name() == interface_name && j.name() == name && j.version() == version)
+				return j;
+
+	return ExtensionDescription();
 }
 
-const ExtensionDescription *ExtensionSystem::_findDescription( const std::string& name ) const {
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const {
 	unsigned int highesVersion = 0;
-	const ExtensionDescription* desc = nullptr;
+	const ExtensionDescription *desc = nullptr;
 
-	for( auto i = _knownExtensions.begin(); i != _knownExtensions.end(); i++ ) {
-		for( auto j = i->second.extensions.begin(); j != i->second.extensions.end(); j++) {
-			auto current_name = j->name();
-			if( current_name == name && j->version() > highesVersion ) {
-				highesVersion = j->version();
-				desc = &*j;
+	for( auto &i : _knownExtensions) {
+		for( auto &j : i.second.extensions) {
+			if(j.interface_name() == interface_name && j.name() == name && j.version() > highesVersion ) {
+				highesVersion = j.version();
+				desc = &j;
 			}
 		}
 	}
 
-	return desc;
+	return desc ? *desc : ExtensionDescription();
 }
 
 void ExtensionSystem::setDebugMessages(bool enable) {

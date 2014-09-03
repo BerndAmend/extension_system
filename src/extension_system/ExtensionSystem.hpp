@@ -25,6 +25,10 @@ namespace extension_system {
 		ExtensionDescription() {}
 		ExtensionDescription(const std::unordered_map<std::string, std::string> &data) : _data(data) {}
 
+		bool isValid() const {
+			return !_data.empty();
+		}
+
 		std::string name() const {
 			return get("name");
 		}
@@ -128,11 +132,7 @@ namespace extension_system {
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			auto desc = _findDescription(name, version);
-			if( desc != nullptr && desc->interface_name() == extension_system::InterfaceName<T>::getString() ) {
-				return _createExtension<T>(name, version);
-			}
-			return std::shared_ptr<T>();
+			return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, version);
 		}
 
 		/**
@@ -143,26 +143,17 @@ namespace extension_system {
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			auto desc = _findDescription(name);
-			if( desc != nullptr && desc->interface_name() == extension_system::InterfaceName<T>::getString() ) {
-				return _createExtension<T>(name, desc->version());
+			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
+			if( desc.isValid() ) {
+				return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, desc.version());
 			}
 			return std::shared_ptr<T>();
 		}
 
 		template<class T>
-		const ExtensionDescription *findDescription(const std::shared_ptr<T> extension) const {
+		ExtensionDescription findDescription(const std::shared_ptr<T> extension) const {
 			std::unique_lock<std::mutex> lock(_mutex);
 			return _findDescription(extension);
-		}
-
-		const ExtensionDescription *findDescription(const std::string& name, unsigned int version) const {
-			std::unique_lock<std::mutex> lock(_mutex);
-			return _findDescription(name, version);
-		}
-		const ExtensionDescription *findDescription(const std::string& name) const {
-			std::unique_lock<std::mutex> lock(_mutex);
-			return _findDescription(name);
 		}
 
 		bool getDebugMessages() const { return _debug_messages; }
@@ -174,8 +165,8 @@ namespace extension_system {
 		void setVerifyCompiler(bool enable);
 	private:
 
-		const ExtensionDescription *_findDescription(const std::string& name, unsigned int version) const;
-		const ExtensionDescription *_findDescription(const std::string& name) const;
+		ExtensionDescription _findDescription(const std::string &interface_name, const std::string& name, unsigned int version) const;
+		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
 		/**
 		 * frees an extension and unloads the containing library, if no references to that library are present
@@ -205,29 +196,29 @@ namespace extension_system {
 		}
 
 		template<class T>
-		std::shared_ptr<T> _createExtension( const std::string &name, unsigned int version ) {
-			for( auto i = _knownExtensions.begin(); i != _knownExtensions.end(); i++ ) {
-				for( auto j = i->second.extensions.begin(); j != i->second.extensions.end(); j++) {
-					auto current_name = j->name();
-					if( current_name == name && j->version() == version ) {
-						if( i->second.references == 0 ) {
+		std::shared_ptr<T> _createExtension(const std::string& interface_name, const std::string &name, unsigned int version ) {
+			for(auto &i : _knownExtensions) {
+				for(auto &j : i.second.extensions) {
+					auto current_name = j.name();
+					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
+						if( i.second.references == 0 ) {
 							try {
-								i->second.dynamicLibrary.reset(new DynamicLibrary(i->first));
+								i.second.dynamicLibrary.reset(new DynamicLibrary(i.first));
 							} catch(std::exception &) {}
 						}
 
-						if(i->second.dynamicLibrary == nullptr)
+						if(i.second.dynamicLibrary == nullptr)
 							continue;
 
-						auto func = i->second.dynamicLibrary->getProcAddress<T* (T *, const char **)>(j->entry_point());
+						auto func = i.second.dynamicLibrary->getProcAddress<T* (T *, const char **)>(j.entry_point());
 
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
-							if( ex == nullptr && i->second.references == 0) {
-								i->second.dynamicLibrary.reset();
+							if( ex == nullptr && i.second.references == 0) {
+								i.second.dynamicLibrary.reset();
 							} else {
-								i->second.references++;
-								_loadedExtensions[ex] = LoadedExtension(*j, &i->second);
+								i.second.references++;
+								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
 								// FIXME: the following line is broken
 								// it will crash if the object is still alive when the ExtensionSystem is destroyed
 								return std::shared_ptr<T>(ex, [&](T *obj){freeExtension(obj);});
@@ -240,12 +231,12 @@ namespace extension_system {
 		}
 
 		template<class T>
-		const ExtensionDescription *_findDescription(const std::shared_ptr<T> extension) const {
+		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
 			auto i = _loadedExtensions.find(extension.get());
 			if( i != _loadedExtensions.end() )
-				return &(i->second._desc);
+				return i->second._desc;
 			else
-				return nullptr;
+				return ExtensionDescription();
 		}
 
 		std::vector<ExtensionDescription> _extensions(const std::string& interfaceName);
