@@ -130,6 +130,8 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 			result[key] = value;
 		}
 
+		result["library_filename"] = filePath;
+
 		if(failed) {
 			// we already printed an error
 		} else if(!result.empty()) {

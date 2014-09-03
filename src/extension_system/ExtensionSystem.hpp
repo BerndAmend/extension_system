@@ -57,6 +57,10 @@ namespace extension_system {
 			return get("entry_point");
 		}
 
+		std::string library_filename() const {
+			return get("library_filename");
+		}
+
 		std::unordered_map<std::string, std::string> getExtended() const {
 			std::unordered_map<std::string, std::string> result = _data;
 
@@ -65,6 +69,7 @@ namespace extension_system {
 			result.erase("description");
 			result.erase("interface_name");
 			result.erase("entry_point");
+			result.erase("library_filename");
 
 			return result;
 		}
@@ -306,13 +311,14 @@ std::basic_ostream<T,traits> & operator << (std::basic_ostream<T,traits> &out, c
 			"  version="<<obj.version()<<"\n"
 			"  description="<<obj.description()<<"\n"
 			"  interface_name="<<obj.interface_name()<<"\n"
-			"  entry_point="<<obj.entry_point()<<"\n";
+			"  entry_point="<<obj.entry_point()<<"\n"
+			"  library_filename="<<obj.library_filename()<<"\n";
 
 	auto extended = obj.getExtended();
 	if(!extended.empty()) {
 		out << "  Extended data:\n";
-		for(auto iter = extended.begin(); iter != extended.end(); ++iter)
-			out << "    " << iter->first << " = " << iter->second << "\n";
+		for(auto &iter : extended)
+			out << "    " << iter.first << " = " << iter.second << "\n";
 	}
 
 	return out ;
