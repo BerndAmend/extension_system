@@ -16,8 +16,7 @@ int main() {
 	ExtensionSystem extensionSystem;
 	extensionSystem.setDebugMessages(true);
 
-	extensionSystem.searchDirectory("./");
-	extensionSystem.searchDirectory("../lib");
+	extensionSystem.searchDirectory(".");
 	auto extensions =  extensionSystem.extensions();
 
 	for( auto i = extensions.begin(); i != extensions.end(); i++ )

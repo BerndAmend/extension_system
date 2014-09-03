@@ -4,7 +4,7 @@
 
 int main() {
 	extension_system::ExtensionSystem extensionSystem;
-	extensionSystem.searchDirectory("./");
+	extensionSystem.searchDirectory(".");
 
 	std::vector<extension_system::ExtensionDescription> interface2Extensions = extensionSystem.extensions<Interface2>();
 	std::vector<extension_system::ExtensionDescription>::iterator iter;
