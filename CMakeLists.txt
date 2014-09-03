@@ -120,13 +120,20 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 	add_library(extension_system_example1_extension SHARED examples/example1/Extension.cpp examples/example1/Interface.hpp)
 	add_executable(extension_system_example1 examples/example1/main.cpp examples/example1/Interface.hpp)
 	target_link_libraries(extension_system_example1 extension_system)
-	
+
+	## Example 2
+	add_library(extension_system_example2_extension SHARED examples/example2/Extension.cpp examples/example2/Interface.hpp)
+	add_executable(extension_system_example2 examples/example2/main.cpp examples/example2/Interface.hpp)
+	target_link_libraries(extension_system_example2 extension_system)
+
 	if(EXTENSION_SYSTEM_COMPILER_MSVC)
 		set_target_properties(extension_system PROPERTIES DEBUG_POSTFIX d)
 		set_target_properties(extension_system_test_lib PROPERTIES DEBUG_POSTFIX d)
 		set_target_properties(extension_system_test PROPERTIES DEBUG_POSTFIX d)
 		set_target_properties(extension_system_example1_extension PROPERTIES DEBUG_POSTFIX d)
 		set_target_properties(extension_system_example1 PROPERTIES DEBUG_POSTFIX d)
+		set_target_properties(extension_system_example2_extension PROPERTIES DEBUG_POSTFIX d)
+		set_target_properties(extension_system_example2 PROPERTIES DEBUG_POSTFIX d)
 	endif()
 
 	install(TARGETS extension_system
