@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <extension_system/string.hpp>
 #include <extension_system/filesystem.hpp>
 
@@ -261,6 +262,47 @@ void ExtensionSystem::searchDirectory( const std::string& path ) {
 	for(auto &p : filesystem::getDirectoryContent(path))
 		if (p.extension().string() == DynamicLibrary::fileExtension())
 			addDynamicLibrary(p.string());
+}
+
+std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter)
+{
+	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
+
+	for( auto &f : metaDataFilter )
+	{
+		filterMap[f.first].insert(f.second);
+	}
+
+	std::unique_lock<std::mutex> lock(_mutex);
+	std::vector<ExtensionDescription> result;
+
+	for(auto &i : _knownExtensions)
+		for(auto &j : i.second.extensions) {
+			// check all filters
+			bool addExtension = true;
+
+			for( auto &filter : filterMap ) {
+				auto extended = j.getExtended();
+
+				// search extended data if filtered metadata is present
+				auto extIter = extended.find(filter.first);
+
+				if( extIter == extended.end() ) {
+					addExtension = false;
+					break;
+				}
+
+				// check if metadata value is within filter values
+				if( filter.second.find(extIter->second) == filter.second.end() ) {
+					addExtension = false;
+					break;
+				}
+			}
+			if( addExtension )
+				result.push_back(j);
+		}
+	return result;
+
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions() {

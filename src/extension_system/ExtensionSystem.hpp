@@ -130,6 +130,15 @@ namespace extension_system {
 		std::vector<ExtensionDescription> extensions();
 
 		/**
+		 * get a list of extensions, filtered by metadata
+		 * Same metadata keys are treated as or-linked, different keys are and-linked treated.
+		 * For example: {{"author", "Alice"}, {"author", "Bob"}, {"company", "MyCorp"}} will list all extensions whose authors are Alice or Bob and the company is "MyCorp"
+		 * @param metaDataFilter Metadata to search extensions for. Use c++11 initializer lists for simple usage: {{"author", "Alice"}, {"company", "MyCorp"}}
+		 * @return list of extensions
+		 */
+		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter);
+
+		/**
 		 * get a list of all known extensions of a specified interface type
 		 */
 		template<class T>
