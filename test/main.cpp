@@ -9,6 +9,7 @@
 #include "Interfaces.hpp"
 #include <extension_system/ExtensionSystem.hpp>
 #include <iostream>
+#include <list>
 
 using namespace extension_system;
 
@@ -49,6 +50,8 @@ int main() {
 	}
 
 	std::cout<<"done"<<std::endl;
+
+	for( auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i << "\n";
 
 	return 0;
 }

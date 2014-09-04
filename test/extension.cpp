@@ -16,7 +16,9 @@ public:
 		std::cout<<"Hello from Ext1"<<std::endl;
 	}
 };
-EXTENSION_SYSTEM_EXTENSION(IExt1, Ext1, "Ext1", 100, "extension 1 for testing purposes", "")
+EXTENSION_SYSTEM_EXTENSION(IExt1, Ext1, "Ext1", 100, "extension 1 for testing purposes",
+						   EXTENSION_SYSTEM_DESCRIPTION_ENTRY("Test1", "desc2")
+						   EXTENSION_SYSTEM_DESCRIPTION_ENTRY("Test3", "desc3"))
 
 namespace test_namespace {
 	class Ext1_1 : public IExt1
@@ -27,7 +29,7 @@ namespace test_namespace {
 		}
 	};
 }
-EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extension 2 for testing purposes", "")
+EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extension 2 for testing purposes", EXTENSION_SYSTEM_DESCRIPTION_ENTRY("Test1", "desc1"))
 
 class Ext2 : public extension_system::IExt2
 {
