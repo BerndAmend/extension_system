@@ -253,7 +253,7 @@ void ExtensionSystem::searchDirectory( const std::string& path ) {
 			addDynamicLibrary(p.string());
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter)
+std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter) const
 {
 	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
 
@@ -294,7 +294,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions() {
+std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 

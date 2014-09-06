@@ -126,7 +126,7 @@ namespace extension_system {
 		/**
 		 * get a list of all known extensions
 		 */
-		std::vector<ExtensionDescription> extensions();
+		std::vector<ExtensionDescription> extensions() const;
 
 		/**
 		 * get a list of extensions, filtered by metadata
@@ -135,13 +135,13 @@ namespace extension_system {
 		 * @param metaDataFilter Metadata to search extensions for. Use c++11 initializer lists for simple usage: {{"author", "Alice"}, {"company", "MyCorp"}}
 		 * @return list of extensions
 		 */
-		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter);
+		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) const;
 
 		/**
 		 * get a list of all known extensions of a specified interface type
 		 */
 		template<class T>
-		std::vector<ExtensionDescription> extensions(std::vector< std::pair< std::string, std::string > > metaDataFilter={}) {
+		std::vector<ExtensionDescription> extensions(std::vector< std::pair< std::string, std::string > > metaDataFilter={}) const {
 			metaDataFilter.push_back({"interface_name", extension_system::InterfaceName<T>::getString()});
 			return extensions(metaDataFilter);
 		}
