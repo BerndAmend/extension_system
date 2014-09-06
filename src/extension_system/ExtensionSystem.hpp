@@ -38,8 +38,7 @@ namespace extension_system {
 		 * @return the version or 0 if the value couldn't be parsed or didn't exist
 		 */
 		unsigned int version() const {
-			std::stringstream str;
-			str << get("version");
+			std::stringstream str(get("version"));
 			unsigned int result = 0;
 			str >> result;
 			return result;
@@ -187,7 +186,10 @@ namespace extension_system {
 
 		bool getVerifyCompiler() const { return _verify_compiler; }
 
-		// only has an effect before adding a directory
+		/**
+		 * enables or disables the compiler match verification
+		 * only effects libraries that are added afterwards
+		 */
 		void setVerifyCompiler(bool enable);
 	private:
 
