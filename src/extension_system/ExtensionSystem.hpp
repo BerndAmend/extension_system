@@ -97,7 +97,6 @@ namespace extension_system {
 	public:
 		ExtensionSystem();
 		ExtensionSystem(const ExtensionSystem&) = delete;
-		~ExtensionSystem();
 		ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
 		/**
@@ -220,10 +219,10 @@ namespace extension_system {
 							if( ex != nullptr) {
 								_loadedExtensions[ex] = j;
 								// Frees an extension and unloads the containing library, if no references to that library are present.
-								std::shared_ptr<bool> alive = _extension_system_alive;
+								std::weak_ptr<bool> alive = _extension_system_alive;
 								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
 									func(obj, nullptr);
-									if(*alive) {
+									if(!alive.expired()) {
 										std::unique_lock<std::mutex> lock(_mutex);
 										_loadedExtensions.erase(obj);
 									}

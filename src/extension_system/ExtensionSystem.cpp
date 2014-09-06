@@ -40,11 +40,6 @@ static std::string getRealFilename(const std::string &filename) {
 ExtensionSystem::ExtensionSystem()
 	: _verify_compiler(true), _debug_messages(false), _extension_system_alive(std::make_shared<bool>(true)) {}
 
-ExtensionSystem::~ExtensionSystem()
-{
-	*_extension_system_alive = false;
-}
-
 bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	std::unique_lock<std::mutex> lock(_mutex);
 
