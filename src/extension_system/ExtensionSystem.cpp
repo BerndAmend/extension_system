@@ -10,11 +10,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <iterator>
-#include <string>
 #include <algorithm>
-#include <vector>
-#include <unordered_map>
 #include <unordered_set>
 #include <extension_system/string.hpp>
 #include <extension_system/filesystem.hpp>

@@ -9,7 +9,6 @@
 #include "Interfaces.hpp"
 #include <extension_system/ExtensionSystem.hpp>
 #include <iostream>
-#include <list>
 
 using namespace extension_system;
 
