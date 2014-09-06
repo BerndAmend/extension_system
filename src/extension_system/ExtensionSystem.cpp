@@ -38,10 +38,11 @@ static std::string getRealFilename(const std::string &filename) {
 }
 
 ExtensionSystem::ExtensionSystem()
-	: _verify_compiler(true), _debug_messages(false) {}
+	: _verify_compiler(true), _debug_messages(false), _extension_system_alive(std::make_shared<bool>(true)) {}
 
 ExtensionSystem::~ExtensionSystem()
 {
+	*_extension_system_alive = false;
 	if(_debug_messages && !_loadedExtensions.empty()) {
 		std::cerr<<"Error: Not all extensions created by the ExtensionSystem were destroyed before destroying it"<<std::endl;
 		std::cerr<<"The following extensions were still loaded: "<<std::endl;

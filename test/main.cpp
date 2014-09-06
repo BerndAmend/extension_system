@@ -12,6 +12,8 @@
 
 using namespace extension_system;
 
+std::shared_ptr<IExt1> e1;
+
 int main() {
 	ExtensionSystem extensionSystem;
 	extensionSystem.setDebugMessages(true);
@@ -25,7 +27,7 @@ int main() {
 	for( auto &i : extensionSystem.extensions<IExt1>())
 		std::cout << i << "\n";
 
-	auto e1 = extensionSystem.createExtension<IExt1>("Ext1");
+	e1 = extensionSystem.createExtension<IExt1>("Ext1");
 	auto e2 = extensionSystem.createExtension<IExt1>("Ext1", 100);
 	auto e3 = extensionSystem.createExtension<IExt2>("Ext2");
 

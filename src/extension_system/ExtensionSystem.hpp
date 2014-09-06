@@ -192,33 +192,6 @@ namespace extension_system {
 		ExtensionDescription _findDescription(const std::string &interface_name, const std::string& name, unsigned int version) const;
 		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
-		/**
-		 * frees an extension and unloads the containing library, if no references to that library are present
-		 * @param extension extension to be freed
-		 */
-		template<class T>
-		void freeExtension( T *extension ) {
-			std::unique_lock<std::mutex> lock(_mutex);
-			if( extension == nullptr )
-				return;
-
-			auto i = _loadedExtensions.find(extension);
-
-			if( i != _loadedExtensions.end() ) {
-				DynamicLibrary *dynlib = i->second._info->dynamicLibrary.get();
-				auto func =
-					dynlib->getProcAddress<T*(T *, const char **)>(i->second._desc.entry_point());
-
-				if( func != nullptr ) {
-					func(extension, nullptr);
-					i->second._info->references--;
-					if(i->second._info->references == 0)
-						i->second._info->dynamicLibrary.reset();
-				}
-				_loadedExtensions.erase(i);
-			}
-		}
-
 		template<class T>
 		std::shared_ptr<T> _createExtension(const std::string& interface_name, const std::string &name, unsigned int version ) {
 			for(auto &i : _knownExtensions) {
@@ -227,7 +200,7 @@ namespace extension_system {
 					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
 						if( i.second.references == 0 ) {
 							try {
-								i.second.dynamicLibrary.reset(new DynamicLibrary(i.first));
+								i.second.dynamicLibrary = std::make_shared<DynamicLibrary>(i.first);
 							} catch(std::exception &) {}
 						}
 
@@ -243,11 +216,27 @@ namespace extension_system {
 							} else {
 								i.second.references++;
 								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
-								// The following line will crash if you destroy the ExtensionSystem if
-								// extensions are still alive and destroyed afterwards
+								// Frees an extension and unloads the containing library, if no references to that library are present.
+								// To avoid crashes we keep track if the ExtensionSystem is still alive
+								// and only free object if the ExtensionSystem was destroyed.
 								// if you enable debug messages (setDebugMessages(true))
 								// the dtor will report which objects were still alive
-								return std::shared_ptr<T>(ex, [&](T *obj){freeExtension(obj);});
+								std::shared_ptr<bool> alive = _extension_system_alive;
+								std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary;
+								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
+									if(*alive) {
+										std::unique_lock<std::mutex> lock(_mutex);
+										auto &i = _loadedExtensions[obj];
+
+										func(obj, nullptr);
+										i._info->references--;
+										if(i._info->references == 0)
+											i._info->dynamicLibrary.reset();
+										_loadedExtensions.erase(obj);
+									} else {
+										func(obj, nullptr);
+									}
+								});
 							}
 						}
 					}
@@ -285,7 +274,7 @@ namespace extension_system {
 				return *this;
 			}
 
-			std::unique_ptr<DynamicLibrary> dynamicLibrary;
+			std::shared_ptr<DynamicLibrary> dynamicLibrary;
 			std::vector<ExtensionDescription> extensions;
 			int references;
 		};
@@ -315,6 +304,8 @@ namespace extension_system {
 
 		bool _verify_compiler;
 		bool _debug_messages;
+		// used to avoid removing extensions while destroying them from the loadedExtensions map
+		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
 		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
 		std::unordered_map<const void*, LoadedExtension> _loadedExtensions;
