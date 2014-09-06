@@ -35,7 +35,7 @@ namespace extension_system {
 
 	private:
 		const std::string _filename;
-		void * const _handle; // TODO: use a shared_ptr
+		void * const _handle;
 
 		static const std::string _file_extension;
 	};
