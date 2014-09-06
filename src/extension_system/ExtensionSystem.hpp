@@ -149,6 +149,7 @@ namespace extension_system {
 
 		/**
 		 * create an instance of an extension with a specified version
+		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @param version version of extension to create
 		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
@@ -161,6 +162,7 @@ namespace extension_system {
 
 		/**
 		 * create an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
+		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
 		 */
@@ -198,43 +200,30 @@ namespace extension_system {
 				for(auto &j : i.second.extensions) {
 					auto current_name = j.name();
 					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
-						if( i.second.references == 0 ) {
+						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
+						if( dynlib == nullptr ) {
 							try {
-								i.second.dynamicLibrary = std::make_shared<DynamicLibrary>(i.first);
+								dynlib = std::make_shared<DynamicLibrary>(i.first);
 							} catch(std::exception &) {}
+							i.second.dynamicLibrary = dynlib;
 						}
 
-						if(i.second.dynamicLibrary == nullptr)
+						if(dynlib == nullptr)
 							continue;
 
-						auto func = i.second.dynamicLibrary->getProcAddress<T* (T *, const char **)>(j.entry_point());
+						auto func = dynlib->getProcAddress<T* (T *, const char **)>(j.entry_point());
 
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
-							if( ex == nullptr && i.second.references == 0) {
-								i.second.dynamicLibrary.reset();
-							} else {
-								i.second.references++;
+							if( ex != nullptr) {
 								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
 								// Frees an extension and unloads the containing library, if no references to that library are present.
-								// To avoid crashes we keep track if the ExtensionSystem is still alive
-								// and only free object if the ExtensionSystem was destroyed.
-								// if you enable debug messages (setDebugMessages(true))
-								// the dtor will report which objects were still alive
 								std::shared_ptr<bool> alive = _extension_system_alive;
-								std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary;
 								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
+									func(obj, nullptr);
 									if(*alive) {
 										std::unique_lock<std::mutex> lock(_mutex);
-										auto &i = _loadedExtensions[obj];
-
-										func(obj, nullptr);
-										i._info->references--;
-										if(i._info->references == 0)
-											i._info->dynamicLibrary.reset();
 										_loadedExtensions.erase(obj);
-									} else {
-										func(obj, nullptr);
 									}
 								});
 							}
@@ -258,25 +247,17 @@ namespace extension_system {
 		{
 			LibraryInfo(const LibraryInfo&) = delete;
 			LibraryInfo& operator=(const LibraryInfo&) = delete;
-			LibraryInfo() : references(0) {}
-			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex), references(0) {}
-			LibraryInfo(LibraryInfo &&other) : references(0) {
-				*this = std::move(other);
-			}
+			LibraryInfo() {}
+			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex) {}
 
 			LibraryInfo &operator=(LibraryInfo &&other) {
 				dynamicLibrary = std::move(other.dynamicLibrary);
 				extensions = std::move(other.extensions);
-				references = std::move(other.references);
-
-				other.references = 0;
-
 				return *this;
 			}
 
-			std::shared_ptr<DynamicLibrary> dynamicLibrary;
+			std::weak_ptr<DynamicLibrary> dynamicLibrary;
 			std::vector<ExtensionDescription> extensions;
-			int references;
 		};
 
 		struct LoadedExtension {

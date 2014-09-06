@@ -43,14 +43,6 @@ ExtensionSystem::ExtensionSystem()
 ExtensionSystem::~ExtensionSystem()
 {
 	*_extension_system_alive = false;
-	if(_debug_messages && !_loadedExtensions.empty()) {
-		std::cerr<<"Error: Not all extensions created by the ExtensionSystem were destroyed before destroying it"<<std::endl;
-		std::cerr<<"The following extensions were still loaded: "<<std::endl;
-		for(auto &ext : _loadedExtensions) {
-			std::cerr<<"address= "<<ext.first<<std::endl;
-			std::cerr<<ext.second._desc<<std::endl;
-		}
-	}
 }
 
 bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
@@ -74,7 +66,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	auto already_loaded = _knownExtensions.find(filePath);
 
 	// don't reload library, if there are already references to one contained extension
-	if( already_loaded!=_knownExtensions.end() && already_loaded->second.references != 0 ) {
+	if( already_loaded!=_knownExtensions.end() && !already_loaded->second.dynamicLibrary.expired() ) {
 		return false;
 	}
 
