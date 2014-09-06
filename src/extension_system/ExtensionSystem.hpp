@@ -216,7 +216,7 @@ namespace extension_system {
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
 							if( ex != nullptr) {
-								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
+								_loadedExtensions[ex] = j;
 								// Frees an extension and unloads the containing library, if no references to that library are present.
 								std::shared_ptr<bool> alive = _extension_system_alive;
 								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
@@ -238,7 +238,7 @@ namespace extension_system {
 		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
 			auto i = _loadedExtensions.find(extension.get());
 			if( i != _loadedExtensions.end() )
-				return i->second._desc;
+				return i->second;
 			else
 				return ExtensionDescription();
 		}
@@ -260,36 +260,13 @@ namespace extension_system {
 			std::vector<ExtensionDescription> extensions;
 		};
 
-		struct LoadedExtension {
-			LoadedExtension() : _info(nullptr){}
-			LoadedExtension(const LoadedExtension&) =delete;
-			LoadedExtension& operator=(const LoadedExtension&) =delete;
-
-			LoadedExtension(const ExtensionDescription &desc, LibraryInfo *info)
-				: _desc(desc), _info(info) {}
-
-			LoadedExtension(LoadedExtension &&other) : _info(nullptr) {
-				*this = std::move(other);
-			}
-
-			LoadedExtension &operator=(LoadedExtension &&other) {
-				_desc = std::move(other._desc);
-				_info = std::move(other._info);
-				other._info = nullptr;
-				return *this;
-			}
-
-			ExtensionDescription _desc;
-			LibraryInfo *_info;
-		};
-
 		bool _verify_compiler;
 		bool _debug_messages;
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
 		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
-		std::unordered_map<const void*, LoadedExtension> _loadedExtensions;
+		std::unordered_map<const void*, ExtensionDescription> _loadedExtensions;
 	};
 }
 
