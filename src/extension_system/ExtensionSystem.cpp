@@ -282,7 +282,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 			bool addExtension = true;
 
 			for( auto &filter : filterMap ) {
-				auto extended = j.getExtended();
+				auto extended = j._data;
 
 				// search extended data if filtered metadata is present
 				auto extIter = extended.find(filter.first);
