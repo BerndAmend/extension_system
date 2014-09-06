@@ -142,8 +142,9 @@ namespace extension_system {
 		 * get a list of all known extensions of a specified interface type
 		 */
 		template<class T>
-		std::vector<ExtensionDescription> extensions() {
-			return _extensions(extension_system::InterfaceName<T>::getString());
+		std::vector<ExtensionDescription> extensions(std::vector< std::pair< std::string, std::string > > metaDataFilter={}) {
+			metaDataFilter.push_back({"interface_name", extension_system::InterfaceName<T>::getString()});
+			return extensions(metaDataFilter);
 		}
 
 		/**
@@ -263,8 +264,6 @@ namespace extension_system {
 			else
 				return ExtensionDescription();
 		}
-
-		std::vector<ExtensionDescription> _extensions(const std::string& interfaceName);
 
 		struct LibraryInfo
 		{

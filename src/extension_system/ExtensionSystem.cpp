@@ -316,18 +316,6 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() {
 	return list;
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::_extensions(const std::string& interface_name) {
-	std::unique_lock<std::mutex> lock(_mutex);
-	std::vector<ExtensionDescription> result;
-
-	for(auto &i : _knownExtensions)
-		for(auto &j : i.second.extensions)
-			if(j.interface_name() == interface_name)
-				result.push_back(j);
-
-	return result;
-}
-
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
 	for(auto &i : _knownExtensions)
 		for(auto &j : i.second.extensions)
