@@ -9,46 +9,18 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <algorithm>
+#include <functional>
 
 namespace extension_system {
 
-	namespace {
-		inline bool isWhitespace(const char c)
-		{
-			return c==' ' || c=='\n' || c=='\t' || c=='\r' || c==11;
-		}
-	}
-
-	inline std::string trim(const std::string &s)
-	{
-		int left=0, right=s.length()-1;
-
-		while(left<=right && isWhitespace(s[left]))
-			++left;
-
-		while(right>left && isWhitespace(s[right]))
-			--right;
-
-		return s.substr(left, 1+right-left);
-	}
-
-	inline std::vector<std::string> split(const std::string &s, char delimiter) {
-		std::string token;
-		std::vector<std::string> tokens;
-
-		std::for_each(s.begin(), s.end(), [&](char c) {
-			if (delimiter!=c) {
-				token += c;
-			} else {
-				if (token.length())
-					tokens.push_back(token);
-				token.clear();
-			}
-		});
-		if (token.length())
-			tokens.push_back(token);
-		return tokens;
+	inline static void split(const std::string &s, const std::string &delimiter, const std::function<bool(const std::string &)> &func) {
+		std::size_t pos = 0;
+		std::size_t last_pos = 0;
+		do {
+			pos = s.find(delimiter, last_pos);
+			if(!func(s.substr(last_pos, pos-last_pos)))
+				break;
+			last_pos = pos+delimiter.length();
+		} while(pos != std::string::npos);
 	}
 }

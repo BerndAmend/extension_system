@@ -62,11 +62,12 @@
 			const std::string generic_string() const { return _pathname; }
 
 			path filename() const {
-				auto splitted = split(_pathname, '/');
-				if(splitted.empty())
-					return path();
-				else
-					return path(splitted.back());
+				path result;
+				split(_pathname, "/", [&](const std::string &str) {
+					result = str;
+					return true;
+				});
+				return result;
 			}
 
 			path extension() const {

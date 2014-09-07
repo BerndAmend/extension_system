@@ -111,18 +111,18 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 		const std::string raw = std::string(str.data()+start, end-start-1);
 
-		std::vector<std::string> strs;
-		strs = split(raw, '\0');
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
-		for(auto &iter : strs) {
+		std::string delimiter;
+		delimiter += '\0';
+		split(raw, delimiter, [&](const std::string &iter) {
 			std::size_t pos = iter.find('=');
 			if(pos == std::string::npos) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" '=' is missing ("<<iter<<"). Ignore entry."<<std::endl;
 				failed = true;
-				break;
+				return false;
 			}
 			const auto key = iter.substr(0, pos);
 			const auto value = iter.substr(pos+1);
@@ -130,10 +130,11 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" duplicate key ("<<key<<") found. Ignore entry"<<std::endl;
 				failed = true;
-				break;
+				return false;
 			}
 			result[key] = value;
-		}
+			return true;
+		});
 
 		result["library_filename"] = filePath;
 
