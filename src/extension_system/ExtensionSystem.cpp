@@ -173,12 +173,6 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 				continue;
 			}
 
-			if(desc.description().empty()) {
-				if(_debug_messages)
-					std::cerr<<"ExtensionSystem filename="<<filename<<" name="<<desc.name()<<" description was empty or not set"<<std::endl;
-				continue;
-			}
-
 			if(desc.interface_name().empty()) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" name="<<desc.name()<<" interface_name was empty or not set"<<std::endl;
