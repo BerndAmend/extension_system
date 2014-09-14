@@ -238,9 +238,10 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path ) {
-	for(auto &p : filesystem::getDirectoryContent(path))
+	filesystem::forEachFileInDirectory(path, [this](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension())
 			addDynamicLibrary(p.string());
+	});
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter) const

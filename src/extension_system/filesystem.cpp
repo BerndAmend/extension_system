@@ -46,9 +46,8 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 #endif
 }
 
-std::vector<extension_system::filesystem::path> extension_system::filesystem::getDirectoryContent(const extension_system::filesystem::path &p)
+void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path &p, const std::function<void(const extension_system::filesystem::path &p)> &func)
 {
-	std::vector<path> result;
 	DIR *dp;
 	struct dirent *ep;
 	std::string path = p.string();
@@ -59,13 +58,12 @@ std::vector<extension_system::filesystem::path> extension_system::filesystem::ge
 		while ((ep = readdir (dp))) {
 			auto name = std::string(ep->d_name);
 			if(name!="." && name!="..")
-				result.push_back(path + "/" + name);
+				func(path + "/" + name);
 		}
 
 		(void) closedir (dp);
 	}
 	//else throw std::runtime_error("Couldn't open the directory");
-	return result;
 }
 
 #endif
