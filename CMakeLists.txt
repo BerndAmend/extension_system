@@ -147,7 +147,8 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 	if (DOXYGEN_FOUND)
 		add_custom_target (doc
 							COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_SOURCE_DIR}/Doxyfile
-							SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile)
+							SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile
+							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 	else()
 		message("Doxygen is needed to build the documentation. Please install it to build the documentation.")
 	endif()
