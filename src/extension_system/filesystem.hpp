@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <extension_system/string.hpp>
 
@@ -27,17 +28,13 @@
 		}
 
 		//
-		std::vector<path> getDirectoryContent(const path &p) {
-			std::vector<path> result;
-
+		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func) {
 			path someDir(path);
 			directory_iterator end_iter;
 
 			if ( exists(someDir) && is_directory(someDir))
 				for( directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
-					result.push_back(dir_iter>path());
-
-			return result;
+					func(dir_iter>path());
 		}
 	}}
 #else
@@ -62,11 +59,12 @@
 			const std::string generic_string() const { return _pathname; }
 
 			path filename() const {
-				auto splitted = split(_pathname, '/');
-				if(splitted.empty())
-					return path();
-				else
-					return path(splitted.back());
+				path result;
+				split(_pathname, "/", [&](const std::string &str) {
+					result = str;
+					return true;
+				});
+				return result;
 			}
 
 			path extension() const {
@@ -86,7 +84,7 @@
 		bool is_directory(const path &p);
 		path canonical(const path &p);
 
-		std::vector<path> getDirectoryContent(const path &p);
+		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func);
 
 	}}
 #endif

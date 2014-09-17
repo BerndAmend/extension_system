@@ -38,8 +38,7 @@ namespace extension_system {
 		 * @return the version or 0 if the value couldn't be parsed or didn't exist
 		 */
 		unsigned int version() const {
-			std::stringstream str;
-			str << get("version");
+			std::stringstream str(get("version"));
 			unsigned int result = 0;
 			str >> result;
 			return result;
@@ -98,7 +97,6 @@ namespace extension_system {
 	public:
 		ExtensionSystem();
 		ExtensionSystem(const ExtensionSystem&) = delete;
-		~ExtensionSystem();
 		ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
 		/**
@@ -127,7 +125,7 @@ namespace extension_system {
 		/**
 		 * get a list of all known extensions
 		 */
-		std::vector<ExtensionDescription> extensions();
+		std::vector<ExtensionDescription> extensions() const;
 
 		/**
 		 * get a list of extensions, filtered by metadata
@@ -136,18 +134,20 @@ namespace extension_system {
 		 * @param metaDataFilter Metadata to search extensions for. Use c++11 initializer lists for simple usage: {{"author", "Alice"}, {"company", "MyCorp"}}
 		 * @return list of extensions
 		 */
-		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter);
+		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) const;
 
 		/**
 		 * get a list of all known extensions of a specified interface type
 		 */
 		template<class T>
-		std::vector<ExtensionDescription> extensions() {
-			return _extensions(extension_system::InterfaceName<T>::getString());
+		std::vector<ExtensionDescription> extensions(std::vector< std::pair< std::string, std::string > > metaDataFilter={}) const {
+			metaDataFilter.push_back({"interface_name", extension_system::InterfaceName<T>::getString()});
+			return extensions(metaDataFilter);
 		}
 
 		/**
 		 * create an instance of an extension with a specified version
+		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @param version version of extension to create
 		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
@@ -160,6 +160,7 @@ namespace extension_system {
 
 		/**
 		 * create an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
+		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
 		 */
@@ -184,39 +185,15 @@ namespace extension_system {
 
 		bool getVerifyCompiler() const { return _verify_compiler; }
 
-		// only has an effect before adding a directory
+		/**
+		 * enables or disables the compiler match verification
+		 * only effects libraries that are added afterwards
+		 */
 		void setVerifyCompiler(bool enable);
 	private:
 
 		ExtensionDescription _findDescription(const std::string &interface_name, const std::string& name, unsigned int version) const;
 		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
-
-		/**
-		 * frees an extension and unloads the containing library, if no references to that library are present
-		 * @param extension extension to be freed
-		 */
-		template<class T>
-		void freeExtension( T *extension ) {
-			std::unique_lock<std::mutex> lock(_mutex);
-			if( extension == nullptr )
-				return;
-
-			auto i = _loadedExtensions.find(extension);
-
-			if( i != _loadedExtensions.end() ) {
-				DynamicLibrary *dynlib = i->second._info->dynamicLibrary.get();
-				auto func =
-					dynlib->getProcAddress<T*(T *, const char **)>(i->second._desc.entry_point());
-
-				if( func != nullptr ) {
-					func(extension, nullptr);
-					i->second._info->references--;
-					if(i->second._info->references == 0)
-						i->second._info->dynamicLibrary.reset();
-				}
-				_loadedExtensions.erase(i);
-			}
-		}
 
 		template<class T>
 		std::shared_ptr<T> _createExtension(const std::string& interface_name, const std::string &name, unsigned int version ) {
@@ -224,29 +201,32 @@ namespace extension_system {
 				for(auto &j : i.second.extensions) {
 					auto current_name = j.name();
 					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
-						if( i.second.references == 0 ) {
+						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
+						if( dynlib == nullptr ) {
 							try {
-								i.second.dynamicLibrary.reset(new DynamicLibrary(i.first));
+								dynlib = std::make_shared<DynamicLibrary>(i.first);
 							} catch(std::exception &) {}
+							i.second.dynamicLibrary = dynlib;
 						}
 
-						if(i.second.dynamicLibrary == nullptr)
+						if(dynlib == nullptr)
 							continue;
 
-						auto func = i.second.dynamicLibrary->getProcAddress<T* (T *, const char **)>(j.entry_point());
+						auto func = dynlib->getProcAddress<T* (T *, const char **)>(j.entry_point());
 
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
-							if( ex == nullptr && i.second.references == 0) {
-								i.second.dynamicLibrary.reset();
-							} else {
-								i.second.references++;
-								_loadedExtensions[ex] = LoadedExtension(j, &i.second);
-								// The following line will crash if you destroy the ExtensionSystem if
-								// extensions are still alive and destroyed afterwards
-								// if you enable debug messages (setDebugMessages(true))
-								// the dtor will report which objects were still alive
-								return std::shared_ptr<T>(ex, [&](T *obj){freeExtension(obj);});
+							if( ex != nullptr) {
+								_loadedExtensions[ex] = j;
+								// Frees an extension and unloads the containing library, if no references to that library are present.
+								std::weak_ptr<bool> alive = _extension_system_alive;
+								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
+									func(obj, nullptr);
+									if(!alive.expired()) {
+										std::unique_lock<std::mutex> lock(_mutex);
+										_loadedExtensions.erase(obj);
+									}
+								});
 							}
 						}
 					}
@@ -259,66 +239,33 @@ namespace extension_system {
 		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
 			auto i = _loadedExtensions.find(extension.get());
 			if( i != _loadedExtensions.end() )
-				return i->second._desc;
+				return i->second;
 			else
 				return ExtensionDescription();
 		}
 
-		std::vector<ExtensionDescription> _extensions(const std::string& interfaceName);
-
 		struct LibraryInfo
 		{
+			LibraryInfo() {}
+// TODO check if we can enable them for msvc
+#ifndef EXTENSION_SYSTEM_COMPILER_MSVC
 			LibraryInfo(const LibraryInfo&) = delete;
 			LibraryInfo& operator=(const LibraryInfo&) = delete;
-			LibraryInfo() : references(0) {}
-			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex), references(0) {}
-			LibraryInfo(LibraryInfo &&other) : references(0) {
-				*this = std::move(other);
-			}
+			LibraryInfo& operator=(LibraryInfo &&) = default;
+#endif
+			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex) {}
 
-			LibraryInfo &operator=(LibraryInfo &&other) {
-				dynamicLibrary = std::move(other.dynamicLibrary);
-				extensions = std::move(other.extensions);
-				references = std::move(other.references);
-
-				other.references = 0;
-
-				return *this;
-			}
-
-			std::unique_ptr<DynamicLibrary> dynamicLibrary;
+			std::weak_ptr<DynamicLibrary> dynamicLibrary;
 			std::vector<ExtensionDescription> extensions;
-			int references;
-		};
-
-		struct LoadedExtension {
-			LoadedExtension() : _info(nullptr){}
-			LoadedExtension(const LoadedExtension&) =delete;
-			LoadedExtension& operator=(const LoadedExtension&) =delete;
-
-			LoadedExtension(const ExtensionDescription &desc, LibraryInfo *info)
-				: _desc(desc), _info(info) {}
-
-			LoadedExtension(LoadedExtension &&other) : _info(nullptr) {
-				*this = std::move(other);
-			}
-
-			LoadedExtension &operator=(LoadedExtension &&other) {
-				_desc = std::move(other._desc);
-				_info = std::move(other._info);
-				other._info = nullptr;
-				return *this;
-			}
-
-			ExtensionDescription _desc;
-			LibraryInfo *_info;
 		};
 
 		bool _verify_compiler;
 		bool _debug_messages;
+		// used to avoid removing extensions while destroying them from the loadedExtensions map
+		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
 		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
-		std::unordered_map<const void*, LoadedExtension> _loadedExtensions;
+		std::unordered_map<const void*, ExtensionDescription> _loadedExtensions;
 	};
 }
 

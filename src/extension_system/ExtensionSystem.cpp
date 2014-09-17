@@ -10,11 +10,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <iterator>
-#include <string>
 #include <algorithm>
-#include <vector>
-#include <unordered_map>
 #include <unordered_set>
 #include <extension_system/string.hpp>
 #include <extension_system/filesystem.hpp>
@@ -42,19 +38,7 @@ static std::string getRealFilename(const std::string &filename) {
 }
 
 ExtensionSystem::ExtensionSystem()
-	: _verify_compiler(true), _debug_messages(false) {}
-
-ExtensionSystem::~ExtensionSystem()
-{
-	if(_debug_messages && !_loadedExtensions.empty()) {
-		std::cerr<<"Error: Not all extensions created by the ExtensionSystem were destroyed before destroying it"<<std::endl;
-		std::cerr<<"The following extensions were still loaded: "<<std::endl;
-		for(auto &ext : _loadedExtensions) {
-			std::cerr<<"address= "<<ext.first<<std::endl;
-			std::cerr<<ext.second._desc<<std::endl;
-		}
-	}
-}
+	: _verify_compiler(true), _debug_messages(false), _extension_system_alive(std::make_shared<bool>(true)) {}
 
 bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	std::unique_lock<std::mutex> lock(_mutex);
@@ -77,7 +61,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	auto already_loaded = _knownExtensions.find(filePath);
 
 	// don't reload library, if there are already references to one contained extension
-	if( already_loaded!=_knownExtensions.end() && already_loaded->second.references != 0 ) {
+	if( already_loaded!=_knownExtensions.end() && !already_loaded->second.dynamicLibrary.expired() ) {
 		return false;
 	}
 
@@ -127,18 +111,18 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 		const std::string raw = std::string(str.data()+start, end-start-1);
 
-		std::vector<std::string> strs;
-		strs = split(raw, '\0');
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
-		for(auto &iter : strs) {
+		std::string delimiter;
+		delimiter += '\0';
+		split(raw, delimiter, [&](const std::string &iter) {
 			std::size_t pos = iter.find('=');
 			if(pos == std::string::npos) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" '=' is missing ("<<iter<<"). Ignore entry."<<std::endl;
 				failed = true;
-				break;
+				return false;
 			}
 			const auto key = iter.substr(0, pos);
 			const auto value = iter.substr(pos+1);
@@ -146,10 +130,11 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" duplicate key ("<<key<<") found. Ignore entry"<<std::endl;
 				failed = true;
-				break;
+				return false;
 			}
 			result[key] = value;
-		}
+			return true;
+		});
 
 		result["library_filename"] = filePath;
 
@@ -185,12 +170,6 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 			if(desc.name().empty()) {
 				if(_debug_messages)
 					std::cerr<<"ExtensionSystem filename="<<filename<<" name was empty or not set"<<std::endl;
-				continue;
-			}
-
-			if(desc.description().empty()) {
-				if(_debug_messages)
-					std::cerr<<"ExtensionSystem filename="<<filename<<" name="<<desc.name()<<" description was empty or not set"<<std::endl;
 				continue;
 			}
 
@@ -259,12 +238,13 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path ) {
-	for(auto &p : filesystem::getDirectoryContent(path))
+	filesystem::forEachFileInDirectory(path, [this](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension())
 			addDynamicLibrary(p.string());
+	});
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter)
+std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter) const
 {
 	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
 
@@ -282,7 +262,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 			bool addExtension = true;
 
 			for( auto &filter : filterMap ) {
-				auto extended = j.getExtended();
+				auto extended = j._data;
 
 				// search extended data if filtered metadata is present
 				auto extIter = extended.find(filter.first);
@@ -305,7 +285,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions() {
+std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 
@@ -314,18 +294,6 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() {
 			list.push_back(j);
 
 	return list;
-}
-
-std::vector<ExtensionDescription> ExtensionSystem::_extensions(const std::string& interface_name) {
-	std::unique_lock<std::mutex> lock(_mutex);
-	std::vector<ExtensionDescription> result;
-
-	for(auto &i : _knownExtensions)
-		for(auto &j : i.second.extensions)
-			if(j.interface_name() == interface_name)
-				result.push_back(j);
-
-	return result;
 }
 
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
