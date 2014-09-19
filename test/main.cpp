@@ -16,7 +16,6 @@ std::shared_ptr<IExt1> e1;
 
 int main() {
 	ExtensionSystem extensionSystem;
-	extensionSystem.setDebugMessages(true);
 
 	extensionSystem.searchDirectory(".");
 

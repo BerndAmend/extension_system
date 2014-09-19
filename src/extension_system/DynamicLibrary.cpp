@@ -40,9 +40,7 @@ static void throwOnError() {
 #endif
 
 	if(err) {
-		std::stringstream sstream;
-		sstream << "DynamicLibrary error: " << err;
-		throw std::runtime_error(sstream.str());
+		throw std::runtime_error(std::string("DynamicLibrary error: ") + err);
 	}
 }
 

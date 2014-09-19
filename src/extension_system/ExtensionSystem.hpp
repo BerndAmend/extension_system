@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <functional>
 
 #include <extension_system/macros.hpp>
 #include <extension_system/Extension.hpp>
@@ -180,8 +181,9 @@ namespace extension_system {
 			return _findDescription(extension);
 		}
 
-		bool getDebugMessages() const { return _debug_messages; }
-		void setDebugMessages(bool enable);
+		void setMessageHandler(std::function<void(const std::string &)> &func) {
+			_message_handler = func;
+		}
 
 		bool getVerifyCompiler() const { return _verify_compiler; }
 
@@ -205,7 +207,9 @@ namespace extension_system {
 						if( dynlib == nullptr ) {
 							try {
 								dynlib = std::make_shared<DynamicLibrary>(i.first);
-							} catch(std::exception &) {}
+							} catch(std::exception &e) {
+								_message_handler(e.what());
+							}
 							i.second.dynamicLibrary = dynlib;
 						}
 
@@ -260,7 +264,7 @@ namespace extension_system {
 		};
 
 		bool _verify_compiler;
-		bool _debug_messages;
+		std::function<void(const std::string &)> _message_handler;
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
