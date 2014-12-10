@@ -24,20 +24,25 @@ namespace extension_system {
 
 		const void *getHandle() const;
 
-		void *getProcAddress(const std::string &name) const;
+		void *getProcAddress(const std::string &name);
 
 		template<typename FunctionSignature>
-		std::function<FunctionSignature> getProcAddress(const std::string &name) const {
+		std::function<FunctionSignature> getProcAddress(const std::string &name) {
 			return reinterpret_cast<FunctionSignature*>(getProcAddress(name));
 		}
 
 		static std::string fileExtension();
 
+		bool isValid() const;
+
+		std::string getLastError() const;
+
 	private:
 		const std::string _filename;
-		void * const _handle;
+		void *_handle;
+		std::string _last_error;
 
-		static const std::string _file_extension;
+		void setLastError();
 	};
 
 }

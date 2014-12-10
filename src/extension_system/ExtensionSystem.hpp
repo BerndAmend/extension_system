@@ -253,10 +253,9 @@ namespace extension_system {
 					if(j == desc) {
 						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
 						if( dynlib == nullptr ) {
-							try {
-								dynlib = std::make_shared<DynamicLibrary>(i.first);
-							} catch(std::exception &e) {
-								_message_handler(e.what());
+							dynlib = std::make_shared<DynamicLibrary>(i.first);
+							if(!dynlib->isValid()) {
+								_message_handler(dynlib->getLastError());
 							}
 							i.second.dynamicLibrary = dynlib;
 						}
