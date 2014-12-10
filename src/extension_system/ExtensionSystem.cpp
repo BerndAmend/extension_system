@@ -49,10 +49,10 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		return false;
 	}
 
-	auto already_loaded = _knownExtensions.find(filePath);
+	auto already_loaded = _known_extensions.find(filePath);
 
 	// don't reload library, if there are already references to one contained extension
-	if( already_loaded!=_knownExtensions.end() && !already_loaded->second.dynamicLibrary.expired() ) {
+	if( already_loaded!=_known_extensions.end() && !already_loaded->second.dynamic_library.expired() ) {
 		return false;
 	}
 
@@ -196,7 +196,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 	if(!extension_list.empty()) {
 		//TODO: handling of extensions with same name and version number
-		_knownExtensions[filePath] = LibraryInfo(extension_list);
+		_known_extensions[filePath] = LibraryInfo(extension_list);
 		return true;
 	} else {
 		const std::size_t found_upx_exclamation_mark = t.find(upx_exclamation_mark_string);
@@ -216,9 +216,9 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 {
 	std::unique_lock<std::mutex> lock(_mutex);
 	auto real_filename = getRealFilename(filename);
-	auto iter = _knownExtensions.find(real_filename);
-	if(iter != _knownExtensions.end())
-		_knownExtensions.erase(iter);
+	auto iter = _known_extensions.find(real_filename);
+	if(iter != _known_extensions.end())
+		_known_extensions.erase(iter);
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path) {
@@ -249,7 +249,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> result;
 
-	for(auto &i : _knownExtensions)
+	for(auto &i : _known_extensions)
 		for(auto &j : i.second.extensions) {
 			// check all filters
 			bool addExtension = true;
@@ -282,7 +282,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 
-	for(auto &i : _knownExtensions)
+	for(auto &i : _known_extensions)
 		for(auto &j : i.second.extensions)
 			list.push_back(j);
 
@@ -290,7 +290,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 }
 
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
-	for(auto &i : _knownExtensions)
+	for(auto &i : _known_extensions)
 		for(auto &j : i.second.extensions)
 			if(j.interface_name() == interface_name && j.name() == name && j.version() == version)
 				return j;
@@ -302,7 +302,7 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
 	unsigned int highesVersion = 0;
 	const ExtensionDescription *desc = nullptr;
 
-	for( auto &i : _knownExtensions) {
+	for( auto &i : _known_extensions) {
 		for( auto &j : i.second.extensions) {
 			if(j.interface_name() == interface_name && j.name() == name && j.version() > highesVersion ) {
 				highesVersion = j.version();

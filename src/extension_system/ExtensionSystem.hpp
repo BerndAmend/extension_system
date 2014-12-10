@@ -248,16 +248,16 @@ namespace extension_system {
 			if(!desc.isValid())
 				return std::shared_ptr<T>();
 
-			for(auto &i : _knownExtensions) {
+			for(auto &i : _known_extensions) {
 				for(auto &j : i.second.extensions) {
 					if(j == desc) {
-						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
+						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamic_library.lock();
 						if( dynlib == nullptr ) {
 							dynlib = std::make_shared<DynamicLibrary>(i.first);
 							if(!dynlib->isValid()) {
 								_message_handler(dynlib->getLastError());
 							}
-							i.second.dynamicLibrary = dynlib;
+							i.second.dynamic_library = dynlib;
 						}
 
 						if(dynlib == nullptr)
@@ -268,14 +268,14 @@ namespace extension_system {
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
 							if( ex != nullptr) {
-								_loadedExtensions[ex] = j;
+								_loaded_extensions[ex] = j;
 								// Frees an extension and unloads the containing library, if no references to that library are present.
 								std::weak_ptr<bool> alive = _extension_system_alive;
 								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
 									func(obj, nullptr);
 									if(!alive.expired()) {
 										std::unique_lock<std::mutex> lock(_mutex);
-										_loadedExtensions.erase(obj);
+										_loaded_extensions.erase(obj);
 									}
 								});
 							}
@@ -288,8 +288,8 @@ namespace extension_system {
 
 		template<class T>
 		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
-			auto i = _loadedExtensions.find(extension.get());
-			if( i != _loadedExtensions.end() )
+			auto i = _loaded_extensions.find(extension.get());
+			if( i != _loaded_extensions.end() )
 				return i->second;
 			else
 				return ExtensionDescription();
@@ -306,7 +306,7 @@ namespace extension_system {
 #endif
 			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex) {}
 
-			std::weak_ptr<DynamicLibrary> dynamicLibrary;
+			std::weak_ptr<DynamicLibrary> dynamic_library;
 			std::vector<ExtensionDescription> extensions;
 		};
 
@@ -315,8 +315,8 @@ namespace extension_system {
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
-		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
-		std::unordered_map<const void*, ExtensionDescription> _loadedExtensions;
+		std::unordered_map<std::string, LibraryInfo> _known_extensions;
+		std::unordered_map<const void*, ExtensionDescription> _loaded_extensions;
 
 		// The following strings are used to find the exported classes in the dll/so files
 		// The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.
