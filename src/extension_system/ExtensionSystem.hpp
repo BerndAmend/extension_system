@@ -87,6 +87,10 @@ namespace extension_system {
 			return get(key);
 		}
 
+		bool operator==(const ExtensionDescription &desc) const {
+			return _data == desc._data;
+		}
+
 		std::unordered_map<std::string, std::string> _data;
 	};
 
@@ -156,7 +160,11 @@ namespace extension_system {
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, version);
+			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name, version);
+			if( desc.isValid() ) {
+				return _createExtension<T>(desc);
+			}
+			return std::shared_ptr<T>();
 		}
 
 		/**
@@ -170,9 +178,23 @@ namespace extension_system {
 			std::unique_lock<std::mutex> lock(_mutex);
 			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
 			if( desc.isValid() ) {
-				return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, desc.version());
+				return _createExtension<T>(desc);
 			}
 			return std::shared_ptr<T>();
+		}
+
+		template<class T>
+		std::shared_ptr<T> createExtension(const ExtensionDescription &desc) {
+			std::unique_lock<std::mutex> lock(_mutex);
+			return _createExtension<T>(desc);
+		}
+
+		template<class T>
+		std::shared_ptr<T> createExtension(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) {
+			auto ext = extensions<T>(metaDataFilter);
+			if(ext.empty())
+				return std::shared_ptr<T>();
+			return _createExtension<T>(ext[0]);
 		}
 
 		template<class T>
@@ -198,11 +220,10 @@ namespace extension_system {
 		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
 		template<class T>
-		std::shared_ptr<T> _createExtension(const std::string& interface_name, const std::string &name, unsigned int version ) {
+		std::shared_ptr<T> _createExtension(const ExtensionDescription &desc) {
 			for(auto &i : _knownExtensions) {
 				for(auto &j : i.second.extensions) {
-					auto current_name = j.name();
-					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
+					if(j == desc) {
 						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
 						if( dynlib == nullptr ) {
 							try {

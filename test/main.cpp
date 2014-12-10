@@ -53,5 +53,10 @@ int main() {
 
 	for( auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i << "\n";
 
+	auto e4 = extensionSystem.createExtension<IExt2>({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
+	if(e4 != nullptr) {
+		e4->test2();
+	}
+
 	return 0;
 }
