@@ -75,6 +75,12 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 	std::size_t found = t.find(desc_start);
 
+	std::size_t first_end = t.find(desc_end);
+
+	if(first_end < found) {
+		_message_handler("ExtensionSystem filename=" + filename + " the first end tag appears before the first start tag");
+	}
+
 	std::vector<std::unordered_map<std::string, std::string> > data;
 
 	while(found != std::string::npos) {
@@ -98,7 +104,6 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		}
 
 		const std::string raw = std::string(str.data()+start, end-start-1);
-
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
