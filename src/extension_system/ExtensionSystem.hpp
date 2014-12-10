@@ -312,6 +312,14 @@ namespace extension_system {
 		mutable std::mutex	_mutex;
 		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
 		std::unordered_map<const void*, ExtensionDescription> _loadedExtensions;
+
+		// The following strings are used to find the exported classes in the dll/so files
+		// The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.
+		const std::string desc_base = "EXTENSION_SYSTEM_METADATA_DESCRIPTION_";
+		const std::string desc_start = ExtensionSystem::desc_base + "START";
+		const std::string desc_end = ExtensionSystem::desc_base + "END";
+		const std::string upx_string = "UPX";
+		const std::string upx_exclamation_mark_string = ExtensionSystem::upx_string + "!";
 	};
 }
 

@@ -17,12 +17,6 @@
 
 using namespace extension_system;
 
-const std::string desc_base = "EXTENSION_SYSTEM_METADATA_DESCRIPTION_";
-const std::string desc_start = desc_base + "START";
-const std::string desc_end = desc_base + "END";
-const std::string upx_string = "UPX";
-const std::string upx_exclamation_mark_string = upx_string + "!";
-
 static std::string getRealFilename(const std::string &filename) {
 	filesystem::path filen(filename);
 
