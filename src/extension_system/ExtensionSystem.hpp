@@ -155,7 +155,7 @@ namespace extension_system {
 		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @param version version of extension to create
-		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
@@ -169,9 +169,9 @@ namespace extension_system {
 
 		/**
 		 * create an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
-		 * loaded extensions can outlive the ExtensionSystem
+		 * loaded extensions can outlive the ExtensionSystem (instance)
 		 * @param name name of extension to create
-		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name) {
@@ -183,12 +183,25 @@ namespace extension_system {
 			return std::shared_ptr<T>();
 		}
 
+		/**
+		 * create an instance of an extension using an ExtensionDescription.
+		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * @param desc desc as returned by extension(...)
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const ExtensionDescription &desc) {
 			std::unique_lock<std::mutex> lock(_mutex);
 			return _createExtension<T>(desc);
 		}
 
+		/**
+		 * create an instance of an extension using a metaDataFilter.
+		 * If multiple versions match the filter the first one as returned by extensions(metaDataFilter) is choosen.
+		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * @param metaDataFilter metaDataFilter that should be used to create the extension
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) {
 			auto ext = extensions<T>(metaDataFilter);
@@ -203,6 +216,11 @@ namespace extension_system {
 			return _findDescription(extension);
 		}
 
+		/**
+		 * Function that should be called if the ExtensionSystem detects an non fatal error while adding a library
+		 * The default message handler outputs everything to std::cerr
+		 * @param func
+		 */
 		void setMessageHandler(std::function<void(const std::string &)> &func) {
 			_message_handler = func;
 		}
@@ -295,7 +313,7 @@ namespace extension_system {
 }
 
 /**
- * Stream operator to allow printing a Message in a human readable form.
+ * Stream operator to allow printing a ExtensionDescription in a human readable form.
  */
 template <typename T, typename traits>
 std::basic_ostream<T,traits> & operator << (std::basic_ostream<T,traits> &out, const extension_system::ExtensionDescription &obj) {
