@@ -255,7 +255,7 @@ namespace extension_system {
 						if( dynlib == nullptr ) {
 							dynlib = std::make_shared<DynamicLibrary>(i.first);
 							if(!dynlib->isValid()) {
-								_message_handler(dynlib->getLastError());
+								_message_handler("_createExtension: " + dynlib->getLastError());
 							}
 							i.second.dynamic_library = dynlib;
 						}
