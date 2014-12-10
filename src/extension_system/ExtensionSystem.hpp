@@ -239,6 +239,9 @@ namespace extension_system {
 
 		template<class T>
 		std::shared_ptr<T> _createExtension(const ExtensionDescription &desc) {
+			if(!desc.isValid())
+				return std::shared_ptr<T>();
+
 			for(auto &i : _knownExtensions) {
 				for(auto &j : i.second.extensions) {
 					if(j == desc) {
