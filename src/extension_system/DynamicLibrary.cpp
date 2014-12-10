@@ -76,7 +76,7 @@ const void *DynamicLibrary::getHandle() const {
 	return _handle;
 }
 
-void *DynamicLibrary::getProcAddress(const std::string &name)
+void *DynamicLibrary::getProcAddress(const std::string &name) const
 {
 	void *func;
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS

@@ -24,10 +24,10 @@ namespace extension_system {
 
 		const void *getHandle() const;
 
-		void *getProcAddress(const std::string &name);
+		void *getProcAddress(const std::string &name) const;
 
 		template<typename FunctionSignature>
-		std::function<FunctionSignature> getProcAddress(const std::string &name) {
+		std::function<FunctionSignature> getProcAddress(const std::string &name) const {
 			return reinterpret_cast<FunctionSignature*>(getProcAddress(name));
 		}
 
