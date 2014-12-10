@@ -121,11 +121,17 @@ namespace extension_system {
 		void removeDynamicLibrary(const std::string &filename);
 
 		/**
-		 * add a directory to extension-search-path
-		 * after adding, the given path is checked for extensions
+		 * calls addDynamicLibrary for every library in the given path
 		 * @param path path to search in for extensions
 		 */
 		void searchDirectory(const std::string &path);
+
+		/**
+		 * calls addDynamicLibrary for every library in the given path that start with required_prefix
+		 * @param path path to search in for extensions
+		 * @param required_prefix required prefix for libraries
+		 */
+		void searchDirectory(const std::string &path, const std::string &required_prefix);
 
 		/**
 		 * get a list of all known extensions

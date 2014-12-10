@@ -221,9 +221,18 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 		_knownExtensions.erase(iter);
 }
 
-void ExtensionSystem::searchDirectory( const std::string& path ) {
+void ExtensionSystem::searchDirectory( const std::string& path) {
 	filesystem::forEachFileInDirectory(path, [this](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension())
+			addDynamicLibrary(p.string());
+	});
+}
+
+void ExtensionSystem::searchDirectory( const std::string& path, const std::string &required_prefix) {
+	const std::size_t required_prefix_length = required_prefix.length();
+	filesystem::forEachFileInDirectory(path, [this, required_prefix_length, &required_prefix](const filesystem::path &p){
+		if (p.extension().string() == DynamicLibrary::fileExtension() &&
+				p.filename().string().compare(0, required_prefix_length, required_prefix)==0)
 			addDynamicLibrary(p.string());
 	});
 }
