@@ -69,6 +69,8 @@ namespace extension_system {
 }
 
 /**
- * You have to call this macro with the fully qualified typename in the root namespace
+ * Make an interface known to extension_system.
+ * In order to create extensions implementing a certain interface, this interface has to be exportet using EXTENSION_SYSTEM_INTERFACE macro
+ * You have to call this macro with the fully qualified typename in the root namespace!
  */
 #define EXTENSION_SYSTEM_INTERFACE(T) namespace extension_system { template<> struct InterfaceName<T> { inline static const char *getString() { return #T ; } };}
