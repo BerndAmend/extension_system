@@ -1,4 +1,4 @@
-/**
+﻿/**
 	@file
 	@copyright
 		Copyright Bernd Amend and Michael Adam 2014
@@ -21,21 +21,35 @@
 
 namespace extension_system {
 
+	/**
+	 * Structure that describes an extenstion.
+	 * Basically an extension is described by
+	 * \li the interface it implements,
+	 * \li its name and
+	 * \li its version.
+	 * Additionally a extension creator can add metadata to further describe the extension.
+	 */
 	struct ExtensionDescription {
 
 		ExtensionDescription() {}
 		ExtensionDescription(const std::unordered_map<std::string, std::string> &data) : _data(data) {}
 
+		/**
+		 * Returns if the extension is valid. An extension is invalid if the describing data structure was not found within the shared module (.so/.dll ...)
+		 */
 		bool isValid() const {
 			return !_data.empty();
 		}
 
+		/**
+		 * Gets the extensions name. The name is given by extension's author.
+		 */
 		std::string name() const {
 			return get("name");
 		}
 
 		/**
-		 * @brief version
+		 * Gets the version of the extension.
 		 * @return the version or 0 if the value couldn't be parsed or didn't exist
 		 */
 		unsigned int version() const {
@@ -45,19 +59,30 @@ namespace extension_system {
 			return result;
 		}
 
+		/**
+		 * Returns extensions description.
+		 */
 		std::string description() const {
 			return get("description");
 		}
 
+		/**
+		 * Returns the fully qualified interface name the extension implements.
+		 */
 		std::string interface_name() const {
 			return get("interface_name");
 		}
 
-
+		/**
+		 * Returns file name of the library containing the extension.
+		 */
 		std::string library_filename() const {
 			return get("library_filename");
 		}
 
+		/**
+		 * Returns a map of additional metadata, defined by extension's author
+		 */
 		std::unordered_map<std::string, std::string> getExtended() const {
 			std::unordered_map<std::string, std::string> result = _data;
 
@@ -71,15 +96,23 @@ namespace extension_system {
 			return result;
 		}
 
+		/**
+		 * Returns meta data identified by key
+		 * @param key Key to retrieve metadata for
+		 * @return Metadata associated with key or an empty string if key was not found in meta data
+		 */
 		std::string get(const std::string &key) const {
 			auto iter = _data.find(key);
 			if(iter == _data.end()) {
-				return "";
+				return std::string();
 			} else {
 				return iter->second;
 			}
 		}
 
+		/**
+		 * Equivalent to get()
+		 */
 		std::string operator[](const std::string &key) const {
 			return get(key);
 		}
@@ -110,50 +143,50 @@ namespace extension_system {
 		ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
 		/**
-		 * @brief addDynamicLibrary
-		 *	add a single dynamic library
-		 * @param filename of the library
+		 * Scans a dynamic library file for extensions and adds these extensions to the list of known extensions.
+		 * @param filename File name of the library
 		 * @return true=the file contained at least one extension, false=file could not be opened or didn't contain an extension
 		 */
 		bool addDynamicLibrary(const std::string &filename);
 
 		/**
-		 * @brief removeDynamicLibrary
-		 *	removes all extensions provided by the library from the list of known extensions
-		 *	already loaded extensions are not affected by this call
-		 * @param filename
+		 * Removes all extensions provided by the library from the list of known extensions
+		 * Currently instantiated extensions are not affected by this call
+		 * @param filename File name of library to remove
 		 */
 		void removeDynamicLibrary(const std::string &filename);
 
 		/**
-		 * calls addDynamicLibrary for every library in the given path
-		 * @param path path to search in for extensions
+		 * Scans a directory for dynamic libraries and calls addDynamicLibrary for every found library
+		 * This function does not recurse to subdirectories.
+		 * @param path Path to search in for extensions
 		 */
 		void searchDirectory(const std::string &path);
 
 		/**
-		 * calls addDynamicLibrary for every library in the given path that start with required_prefix
-		 * @param path path to search in for extensions
-		 * @param required_prefix required prefix for libraries
+		 * Scans a directory for dynamic libraries and calls addDynamicLibrary for every found library whose file begins with required_prefix
+		 * This function does not recurse to subdirectories.
+		 * @param path Path to search in for extensions
+		 * @param required_prefix Required prefix for libraries
 		 */
 		void searchDirectory(const std::string &path, const std::string &required_prefix);
 
 		/**
-		 * get a list of all known extensions
+		 * Returns a list of all known extensions
 		 */
 		std::vector<ExtensionDescription> extensions() const;
 
 		/**
-		 * get a list of extensions, filtered by metadata
+		 * Returns a list of extensions, filtered by metadata.
 		 * Same metadata keys are treated as or-linked, different keys are and-linked treated.
 		 * For example: {{"author", "Alice"}, {"author", "Bob"}, {"company", "MyCorp"}} will list all extensions whose authors are Alice or Bob and the company is "MyCorp"
 		 * @param metaDataFilter Metadata to search extensions for. Use c++11 initializer lists for simple usage: {{"author", "Alice"}, {"company", "MyCorp"}}
-		 * @return list of extensions
+		 * @return List of extensions
 		 */
 		std::vector<ExtensionDescription> extensions(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) const;
 
 		/**
-		 * get a list of all known extensions of a specified interface type
+		 * Returns a list of all known extensions of a specified interface type
 		 */
 		template<class T>
 		std::vector<ExtensionDescription> extensions(std::vector< std::pair< std::string, std::string > > metaDataFilter={}) const {
@@ -162,11 +195,11 @@ namespace extension_system {
 		}
 
 		/**
-		 * create an instance of an extension with a specified version
-		 * loaded extensions can outlive the ExtensionSystem
-		 * @param name name of extension to create
-		 * @param version version of extension to create
-		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 * Creates an instance of an extension with a specified version
+		 * Instantiated extension can outlive the ExtensionSystem (instance)
+		 * @param name Name of extension to create
+		 * @param version Version of extension to create
+		 * @return An instance of an extension class or nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
@@ -179,10 +212,10 @@ namespace extension_system {
 		}
 
 		/**
-		 * create an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
-		 * loaded extensions can outlive the ExtensionSystem (instance)
-		 * @param name name of extension to create
-		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 * Creates an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
+		 * Instantiated extension can outlive the ExtensionSystem (instance)
+		 * @param name Name of extension to create
+		 * @return An instance of an extension class or nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name) {
@@ -195,8 +228,8 @@ namespace extension_system {
 		}
 
 		/**
-		 * create an instance of an extension using an ExtensionDescription.
-		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * Creates an instance of an extension using an ExtensionDescription.
+		 * Instantiated extension can outlive the ExtensionSystem (instance)
 		 * @param desc desc as returned by extension(...)
 		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
@@ -207,9 +240,9 @@ namespace extension_system {
 		}
 
 		/**
-		 * create an instance of an extension using a metaDataFilter.
+		 * Create an instance of an extension using a metaDataFilter.
 		 * If multiple versions match the filter the first one as returned by extensions(metaDataFilter) is choosen.
-		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * Instantiated extension can outlive the ExtensionSystem (instance)
 		 * @param metaDataFilter metaDataFilter that should be used to create the extension
 		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
@@ -221,6 +254,11 @@ namespace extension_system {
 			return _createExtension<T>(ext[0]);
 		}
 
+		/**
+		 * @param extension Instance of an extension.
+		 * @returns ExtensionDescription of extension.
+		 * If extension was not created by this extension system instance, an empty ExtensionDescription will be returned.
+		 */
 		template<class T>
 		ExtensionDescription findDescription(const std::shared_ptr<T> extension) const {
 			std::unique_lock<std::mutex> lock(_mutex);
@@ -228,9 +266,10 @@ namespace extension_system {
 		}
 
 		/**
-		 * Function that should be called if the ExtensionSystem detects an non fatal error while adding a library
-		 * The default message handler outputs everything to std::cerr
-		 * @param func
+		 * Sets a message handler.
+		 * A message handler is a function that should be called if the ExtensionSystem detects an non fatal error while adding a library.
+		 * The default message handler prints to std::cerr
+		 * @param func Message handler function or nullptr if messages should be disabled.
 		 */
 		void setMessageHandler(std::function<void(const std::string &)> &func) {
 			_message_handler = func;
