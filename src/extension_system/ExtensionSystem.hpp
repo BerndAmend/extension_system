@@ -228,7 +228,14 @@ namespace extension_system {
 		 * @param func
 		 */
 		void setMessageHandler(std::function<void(const std::string &)> &func) {
-			_message_handler = func;
+			if(func == nullptr)
+				_message_handler = [](const std::string &){};
+			else
+				_message_handler = func;
+		}
+
+		void setMessageHandler(std::nullptr_t) {
+			_message_handler = [](const std::string &){};
 		}
 
 		bool getVerifyCompiler() const { return _verify_compiler; }
