@@ -33,11 +33,16 @@ namespace extension_system {
 
 		static std::string fileExtension();
 
+		bool isValid() const;
+
+		std::string getLastError() const;
+
 	private:
 		const std::string _filename;
-		void * const _handle;
+		void *_handle;
+		std::string _last_error;
 
-		static const std::string _file_extension;
+		void setLastError();
 	};
 
 }

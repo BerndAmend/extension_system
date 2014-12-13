@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <functional>
 
 #include <extension_system/macros.hpp>
 #include <extension_system/Extension.hpp>
@@ -86,6 +87,10 @@ namespace extension_system {
 			return get(key);
 		}
 
+		bool operator==(const ExtensionDescription &desc) const {
+			return _data == desc._data;
+		}
+
 		std::unordered_map<std::string, std::string> _data;
 	};
 
@@ -116,11 +121,17 @@ namespace extension_system {
 		void removeDynamicLibrary(const std::string &filename);
 
 		/**
-		 * add a directory to extension-search-path
-		 * after adding, the given path is checked for extensions
+		 * calls addDynamicLibrary for every library in the given path
 		 * @param path path to search in for extensions
 		 */
 		void searchDirectory(const std::string &path);
+
+		/**
+		 * calls addDynamicLibrary for every library in the given path that start with required_prefix
+		 * @param path path to search in for extensions
+		 * @param required_prefix required prefix for libraries
+		 */
+		void searchDirectory(const std::string &path, const std::string &required_prefix);
 
 		/**
 		 * get a list of all known extensions
@@ -150,28 +161,59 @@ namespace extension_system {
 		 * loaded extensions can outlive the ExtensionSystem
 		 * @param name name of extension to create
 		 * @param version version of extension to create
-		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name, unsigned int version) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, version);
+			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name, version);
+			if( desc.isValid() ) {
+				return _createExtension<T>(desc);
+			}
+			return std::shared_ptr<T>();
 		}
 
 		/**
 		 * create an instance of an extension. If the extension is available in multiple versions, the highest version will be instantiated
-		 * loaded extensions can outlive the ExtensionSystem
+		 * loaded extensions can outlive the ExtensionSystem (instance)
 		 * @param name name of extension to create
-		 * @return a instance of a extension class or a nullptr, if extension could not be instantiated
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name) {
 			std::unique_lock<std::mutex> lock(_mutex);
 			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
 			if( desc.isValid() ) {
-				return _createExtension<T>(extension_system::InterfaceName<T>::getString(), name, desc.version());
+				return _createExtension<T>(desc);
 			}
 			return std::shared_ptr<T>();
+		}
+
+		/**
+		 * create an instance of an extension using an ExtensionDescription.
+		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * @param desc desc as returned by extension(...)
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 */
+		template<class T>
+		std::shared_ptr<T> createExtension(const ExtensionDescription &desc) {
+			std::unique_lock<std::mutex> lock(_mutex);
+			return _createExtension<T>(desc);
+		}
+
+		/**
+		 * create an instance of an extension using a metaDataFilter.
+		 * If multiple versions match the filter the first one as returned by extensions(metaDataFilter) is choosen.
+		 * loaded extensions can outlive the ExtensionSystem (instance)
+		 * @param metaDataFilter metaDataFilter that should be used to create the extension
+		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
+		 */
+		template<class T>
+		std::shared_ptr<T> createExtension(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) {
+			auto ext = extensions<T>(metaDataFilter);
+			if(ext.empty())
+				return std::shared_ptr<T>();
+			return _createExtension<T>(ext[0]);
 		}
 
 		template<class T>
@@ -180,8 +222,14 @@ namespace extension_system {
 			return _findDescription(extension);
 		}
 
-		bool getDebugMessages() const { return _debug_messages; }
-		void setDebugMessages(bool enable);
+		/**
+		 * Function that should be called if the ExtensionSystem detects an non fatal error while adding a library
+		 * The default message handler outputs everything to std::cerr
+		 * @param func
+		 */
+		void setMessageHandler(std::function<void(const std::string &)> &func) {
+			_message_handler = func;
+		}
 
 		bool getVerifyCompiler() const { return _verify_compiler; }
 
@@ -196,17 +244,20 @@ namespace extension_system {
 		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
 		template<class T>
-		std::shared_ptr<T> _createExtension(const std::string& interface_name, const std::string &name, unsigned int version ) {
-			for(auto &i : _knownExtensions) {
+		std::shared_ptr<T> _createExtension(const ExtensionDescription &desc) {
+			if(!desc.isValid())
+				return std::shared_ptr<T>();
+
+			for(auto &i : _known_extensions) {
 				for(auto &j : i.second.extensions) {
-					auto current_name = j.name();
-					if( interface_name == j.interface_name() && current_name == name && j.version() == version ) {
-						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamicLibrary.lock();
+					if(j == desc) {
+						std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamic_library.lock();
 						if( dynlib == nullptr ) {
-							try {
-								dynlib = std::make_shared<DynamicLibrary>(i.first);
-							} catch(std::exception &) {}
-							i.second.dynamicLibrary = dynlib;
+							dynlib = std::make_shared<DynamicLibrary>(i.first);
+							if(!dynlib->isValid()) {
+								_message_handler("_createExtension: " + dynlib->getLastError());
+							}
+							i.second.dynamic_library = dynlib;
 						}
 
 						if(dynlib == nullptr)
@@ -217,14 +268,14 @@ namespace extension_system {
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);
 							if( ex != nullptr) {
-								_loadedExtensions[ex] = j;
+								_loaded_extensions[ex] = j;
 								// Frees an extension and unloads the containing library, if no references to that library are present.
 								std::weak_ptr<bool> alive = _extension_system_alive;
 								return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T *obj){
 									func(obj, nullptr);
 									if(!alive.expired()) {
 										std::unique_lock<std::mutex> lock(_mutex);
-										_loadedExtensions.erase(obj);
+										_loaded_extensions.erase(obj);
 									}
 								});
 							}
@@ -237,8 +288,8 @@ namespace extension_system {
 
 		template<class T>
 		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
-			auto i = _loadedExtensions.find(extension.get());
-			if( i != _loadedExtensions.end() )
+			auto i = _loaded_extensions.find(extension.get());
+			if( i != _loaded_extensions.end() )
 				return i->second;
 			else
 				return ExtensionDescription();
@@ -255,22 +306,30 @@ namespace extension_system {
 #endif
 			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex) {}
 
-			std::weak_ptr<DynamicLibrary> dynamicLibrary;
+			std::weak_ptr<DynamicLibrary> dynamic_library;
 			std::vector<ExtensionDescription> extensions;
 		};
 
 		bool _verify_compiler;
-		bool _debug_messages;
+		std::function<void(const std::string &)> _message_handler;
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;
 		mutable std::mutex	_mutex;
-		std::unordered_map<std::string, LibraryInfo> _knownExtensions;
-		std::unordered_map<const void*, ExtensionDescription> _loadedExtensions;
+		std::unordered_map<std::string, LibraryInfo> _known_extensions;
+		std::unordered_map<const void*, ExtensionDescription> _loaded_extensions;
+
+		// The following strings are used to find the exported classes in the dll/so files
+		// The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.
+		const std::string desc_base = "EXTENSION_SYSTEM_METADATA_DESCRIPTION_";
+		const std::string desc_start = ExtensionSystem::desc_base + "START";
+		const std::string desc_end = ExtensionSystem::desc_base + "END";
+		const std::string upx_string = "UPX";
+		const std::string upx_exclamation_mark_string = ExtensionSystem::upx_string + "!";
 	};
 }
 
 /**
- * Stream operator to allow printing a Message in a human readable form.
+ * Stream operator to allow printing a ExtensionDescription in a human readable form.
  */
 template <typename T, typename traits>
 std::basic_ostream<T,traits> & operator << (std::basic_ostream<T,traits> &out, const extension_system::ExtensionDescription &obj) {

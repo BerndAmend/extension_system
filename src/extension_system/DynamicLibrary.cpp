@@ -25,49 +25,25 @@ using namespace extension_system;
 	#include <dlfcn.h>
 #endif
 
-const std::string DynamicLibrary::_file_extension =
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
-	".dll";
-#else
-	".so";
-#endif
-
-static void throwOnError() {
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
-	auto err = GetLastError();
-#else
-	auto err = dlerror();
-#endif
-
-	if(err) {
-		std::stringstream sstream;
-		sstream << "DynamicLibrary error: " << err;
-		throw std::runtime_error(sstream.str());
-	}
-}
-
-static void *loadLibrary(const std::string &filename)
-{
-	void *handle = nullptr;
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
-	handle = LoadLibraryA(filename.c_str());
-#else
-	handle = dlopen(filename.c_str(), RTLD_LAZY);
-#endif
-	throwOnError();
-	return handle;
-}
-
 DynamicLibrary::DynamicLibrary(const std::string &filename)
-	: _filename(filename), _handle(loadLibrary(filename)) {
+	: _filename(filename), _handle(nullptr) {
+#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+	_handle = LoadLibraryA(filename.c_str());
+#else
+	_handle = dlopen(filename.c_str(), RTLD_LAZY);
+#endif
+	if(_handle == nullptr)
+		setLastError();
 }
 
 DynamicLibrary::~DynamicLibrary() {
+	if(isValid()) {
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
-	FreeLibrary(_handle);
+		FreeLibrary(_handle);
 #else
-	dlclose(_handle);
+		dlclose(_handle);
 #endif
+	}
 }
 
 std::string DynamicLibrary::getFilename() const {
@@ -78,8 +54,10 @@ const void *DynamicLibrary::getHandle() const {
 	return _handle;
 }
 
-void *DynamicLibrary::getProcAddress(const std::string &name)
-{
+void *DynamicLibrary::getProcAddress(const std::string &name) {
+	if(!isValid())
+		return nullptr;
+
 	void *func;
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
 	static_assert(sizeof(void *) == sizeof(void (*)(void)), "object pointer and function pointer sizes must be equal");
@@ -88,11 +66,32 @@ void *DynamicLibrary::getProcAddress(const std::string &name)
 #else
 	func = dlsym(_handle, name.c_str());
 #endif
-	throwOnError();
+	if(func == nullptr)
+		setLastError();
 	return func;
 }
 
 std::string DynamicLibrary::fileExtension()
 {
-	return _file_extension;
+#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+	return ".dll";
+#else
+	return ".so";
+#endif
+}
+
+bool DynamicLibrary::isValid() const {
+	return _handle != nullptr;
+}
+
+void DynamicLibrary::setLastError() {
+#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+	_last_error = GetLastError();
+#else
+	_last_error = dlerror();
+#endif
+}
+
+std::string DynamicLibrary::getLastError() const {
+	return _last_error;
 }

@@ -103,7 +103,7 @@ target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 
-if(NOT EXTENSION_SYSTEM_COMPILER_MSVC)
+if(NOT EXTENSION_SYSTEM_COMPILER_MSVC AND (CMAKE_SIZEOF_VOID_P EQUAL 8))
 	set_target_properties(extension_system PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 

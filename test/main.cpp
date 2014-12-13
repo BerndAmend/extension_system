@@ -16,7 +16,6 @@ std::shared_ptr<IExt1> e1;
 
 int main() {
 	ExtensionSystem extensionSystem;
-	extensionSystem.setDebugMessages(true);
 
 	extensionSystem.searchDirectory(".");
 
@@ -53,6 +52,11 @@ int main() {
 	std::cout<<"done"<<std::endl;
 
 	for( auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i << "\n";
+
+	auto e4 = extensionSystem.createExtension<IExt2>({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
+	if(e4 != nullptr) {
+		e4->test2();
+	}
 
 	return 0;
 }
