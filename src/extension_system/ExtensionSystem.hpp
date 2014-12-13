@@ -53,9 +53,6 @@ namespace extension_system {
 			return get("interface_name");
 		}
 
-		std::string entry_point() const {
-			return get("entry_point");
-		}
 
 		std::string library_filename() const {
 			return get("library_filename");
@@ -91,7 +88,15 @@ namespace extension_system {
 			return _data == desc._data;
 		}
 
+	private:
+
+		std::string entry_point() const {
+			return get("entry_point");
+		}
+
 		std::unordered_map<std::string, std::string> _data;
+
+		friend class ExtensionSystem;
 	};
 
 	/**
@@ -337,7 +342,6 @@ std::basic_ostream<T,traits> & operator << (std::basic_ostream<T,traits> &out, c
 			"  version="<<obj.version()<<"\n"
 			"  description="<<obj.description()<<"\n"
 			"  interface_name="<<obj.interface_name()<<"\n"
-			"  entry_point="<<obj.entry_point()<<"\n"
 			"  library_filename="<<obj.library_filename()<<"\n";
 
 	auto extended = obj.getExtended();
