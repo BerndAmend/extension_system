@@ -19,12 +19,12 @@ int main() {
 
 	extensionSystem.searchDirectory(".");
 
-	for( auto &i : extensionSystem.extensions())
-		std::cout << i << "\n";
+	for(auto &i : extensionSystem.extensions())
+		std::cout << i.toString() << "\n";
 
 	std::cout << "\nExtensions with interface IExt1:\n";
-	for( auto &i : extensionSystem.extensions<IExt1>())
-		std::cout << i << "\n";
+	for(const auto &i : extensionSystem.extensions<IExt1>())
+		std::cout << i.toString() << "\n";
 
 	e1 = extensionSystem.createExtension<IExt1>("Ext1");
 	auto e2 = extensionSystem.createExtension<IExt1>("Ext1", 100);
@@ -34,24 +34,24 @@ int main() {
 		e1->test1();
 		auto i = extensionSystem.findDescription(e1);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<std::endl;
 	}
 	if(e2 != nullptr) {
 		e2->test1();
 		auto i = extensionSystem.findDescription(e2);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<std::endl;
 	}
 	if(e3 != nullptr) {
 		e3->test2();
 		auto i = extensionSystem.findDescription(e3);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<std::endl;
 	}
 
 	std::cout<<"done"<<std::endl;
 
-	for( auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i << "\n";
+	for(const auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i.toString() << "\n";
 
 	auto e4 = extensionSystem.createExtension<IExt2>({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
 	if(e4 != nullptr) {

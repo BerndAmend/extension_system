@@ -121,6 +121,23 @@ namespace extension_system {
 			return _data == desc._data;
 		}
 
+		std::string toString() const {
+			std::stringstream out;
+			out <<	"  name="<<name()<<"\n"<<
+					"  version="<<version()<<"\n"
+					"  description="<<description()<<"\n"
+					"  interface_name="<<interface_name()<<"\n"
+					"  library_filename="<<library_filename()<<"\n";
+
+			const auto extended = getExtended();
+			if(!extended.empty()) {
+				out << "  Extended data:\n";
+				for(const auto &iter : _data)
+					out << "    " << iter.first << " = " << iter.second << "\n";
+			}
+			return out.str();
+		}
+
 	private:
 
 		std::string entry_point() const {
@@ -373,25 +390,4 @@ namespace extension_system {
 		const std::string upx_string = "UPX";
 		const std::string upx_exclamation_mark_string = ExtensionSystem::upx_string + "!";
 	};
-}
-
-/**
- * Stream operator to allow printing a ExtensionDescription in a human readable form.
- */
-template <typename T, typename traits>
-std::basic_ostream<T,traits> & operator << (std::basic_ostream<T,traits> &out, const extension_system::ExtensionDescription &obj) {
-	out <<	"  name="<<obj.name()<<"\n"<<
-			"  version="<<obj.version()<<"\n"
-			"  description="<<obj.description()<<"\n"
-			"  interface_name="<<obj.interface_name()<<"\n"
-			"  library_filename="<<obj.library_filename()<<"\n";
-
-	auto extended = obj.getExtended();
-	if(!extended.empty()) {
-		out << "  Extended data:\n";
-		for(auto &iter : extended)
-			out << "    " << iter.first << " = " << iter.second << "\n";
-	}
-
-	return out ;
 }
