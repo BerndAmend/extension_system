@@ -82,18 +82,18 @@
 			close();
 		}
 
-		bool open(const std::string &filename) {
+		bool open(const std::string &) {
 			return false;
 		}
 
 		void close() {}
 
-		const char *data() const { return _data; }
+		char *data() { return _data; }
 
 		std::size_t size() const { return _size; }
 
 	private:
-		const char *_data = nullptr;
+		char *_data = nullptr;
 		std::size_t _size = 0;
 	};
 #endif
