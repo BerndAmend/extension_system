@@ -339,7 +339,7 @@ namespace extension_system {
 
 		template<class T>
 		ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
-			auto i = _loaded_extensions.find(extension.get());
+			const auto i = _loaded_extensions.find(extension.get());
 			if( i != _loaded_extensions.end() )
 				return i->second;
 			else

@@ -241,20 +241,18 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 {
 	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
 
-	for( auto &f : metaDataFilter )
-	{
+	for(const auto &f : metaDataFilter )
 		filterMap[f.first].insert(f.second);
-	}
 
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> result;
 
-	for(auto &i : _known_extensions)
-		for(auto &j : i.second.extensions) {
+	for(const auto &i : _known_extensions)
+		for(const auto &j : i.second.extensions) {
 			// check all filters
 			bool addExtension = true;
 
-			for( auto &filter : filterMap ) {
+			for(const auto &filter : filterMap ) {
 				auto extended = j._data;
 
 				// search extended data if filtered metadata is present
@@ -282,16 +280,16 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 
-	for(auto &i : _known_extensions)
-		for(auto &j : i.second.extensions)
+	for(const auto &i : _known_extensions)
+		for(const auto &j : i.second.extensions)
 			list.push_back(j);
 
 	return list;
 }
 
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
-	for(auto &i : _known_extensions)
-		for(auto &j : i.second.extensions)
+	for(const auto &i : _known_extensions)
+		for(const auto &j : i.second.extensions)
 			if(j.interface_name() == interface_name && j.name() == name && j.version() == version)
 				return j;
 
@@ -302,8 +300,8 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
 	unsigned int highesVersion = 0;
 	const ExtensionDescription *desc = nullptr;
 
-	for( auto &i : _known_extensions) {
-		for( auto &j : i.second.extensions) {
+	for(const auto &i : _known_extensions) {
+		for(const auto &j : i.second.extensions) {
 			if(j.interface_name() == interface_name && j.name() == name && j.version() > highesVersion ) {
 				highesVersion = j.version();
 				desc = &j;
