@@ -31,13 +31,13 @@ static std::string getRealFilename(const std::string &filename) {
 	return canonical(filen).generic_string();
 }
 
-static std::size_t find_string(const std::vector<char> &data, const std::string &search_string, std::size_t start_pos) {
+static std::size_t find_string(const char *data, std::size_t data_size, const std::string &search_string, std::size_t start_pos) {
 	// HINT: memmem was much slower than std::search
-	const char *found = std::search(data.data()+start_pos, data.data()+data.size(), search_string.c_str(), search_string.c_str()+search_string.length());
-	if(found == data.data()+data.size())
+	const char *found = std::search(data+start_pos, data+data_size, search_string.c_str(), search_string.c_str()+search_string.length());
+	if(found == data+data_size)
 		return std::string::npos;
 	else
-		return static_cast<std::size_t>(found-data.data());
+		return static_cast<std::size_t>(found-data);
 }
 
 ExtensionSystem::ExtensionSystem()
@@ -45,7 +45,11 @@ ExtensionSystem::ExtensionSystem()
 
 bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	std::unique_lock<std::mutex> lock(_mutex);
+	std::vector<char> buffer;
+	return _addDynamicLibrary(filename, buffer);
+}
 
+bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vector<char> &buffer) {
 	std::string filePath = getRealFilename(filename);
 
 	if(filePath.empty()) {
@@ -76,17 +80,21 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 	file.seekg(0, std::ios::beg);
 
-	std::vector<char> str(static_cast<unsigned int>(file_length));
-	file.read(str.data(), file_length);
+	if(buffer.size() < static_cast<unsigned int>(file_length))
+		buffer.resize(static_cast<unsigned int>(file_length));
+
+	char *file_content = buffer.data();
+
+	file.read(file_content, file_length);
 	file.close();
 
-	std::size_t found = find_string(str, desc_start, 0);
+	std::size_t found = find_string(file_content, file_length, desc_start, 0);
 
 	if(found == std::string::npos) { // no tag found, skip file
 		if(_check_for_upx_compression) {
 			// check only for upx if the file didn't contain any tags at all
-			const std::size_t found_upx_exclamation_mark = find_string(str, upx_exclamation_mark_string, 0);
-			const std::size_t found_upx = find_string(str, upx_string, 0);
+			const std::size_t found_upx_exclamation_mark = find_string(file_content, file_length, upx_exclamation_mark_string, 0);
+			const std::size_t found_upx = find_string(file_content, file_length, upx_string, 0);
 
 			if(found_upx != std::string::npos &&
 					found_upx_exclamation_mark != std::string::npos &&
@@ -103,7 +111,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		std::size_t start = found;
 
 		// search the end tag
-		found = find_string(str, desc_end, found+1);
+		found = find_string(file_content, file_length, desc_end, found+1);
 		std::size_t end = found;
 
 		if(end == std::string::npos) { // end tag not found
@@ -112,14 +120,14 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		}
 
 		// search the next start tag and check if it is interleaved with current section
-		found = find_string(str, desc_start, start+1);
+		found = find_string(file_content, file_length, desc_start, start+1);
 
 		if(found < end ) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
 			continue;
 		}
 
-		const std::string raw = std::string(str.data()+start, end-start-1);
+		const std::string raw = std::string(file_content+start, end-start-1);
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
@@ -153,7 +161,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
 		}
 
-		found = find_string(str, desc_start, end);
+		found = find_string(file_content, file_length, desc_start, end);
 	}
 
 	std::vector<ExtensionDescription> extension_list;
@@ -230,18 +238,22 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path) {
-	filesystem::forEachFileInDirectory(path, [this](const filesystem::path &p){
+	std::vector<char> buffer;
+	std::unique_lock<std::mutex> lock(_mutex);
+	filesystem::forEachFileInDirectory(path, [this, &buffer](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension())
-			addDynamicLibrary(p.string());
+			_addDynamicLibrary(p.string(), buffer);
 	});
 }
 
 void ExtensionSystem::searchDirectory( const std::string& path, const std::string &required_prefix) {
+	std::vector<char> buffer;
+	std::unique_lock<std::mutex> lock(_mutex);
 	const std::size_t required_prefix_length = required_prefix.length();
-	filesystem::forEachFileInDirectory(path, [this, required_prefix_length, &required_prefix](const filesystem::path &p){
+	filesystem::forEachFileInDirectory(path, [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension() &&
 				p.filename().string().compare(0, required_prefix_length, required_prefix)==0)
-			addDynamicLibrary(p.string());
+			_addDynamicLibrary(p.string(), buffer);
 	});
 }
 

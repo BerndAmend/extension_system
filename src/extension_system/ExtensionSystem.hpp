@@ -322,6 +322,8 @@ namespace extension_system {
 
 	private:
 
+		bool _addDynamicLibrary(const std::string &filename, std::vector<char> &buffer);
+
 		ExtensionDescription _findDescription(const std::string &interface_name, const std::string& name, unsigned int version) const;
 		ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
