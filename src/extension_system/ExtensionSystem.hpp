@@ -306,6 +306,20 @@ namespace extension_system {
 		 * only effects libraries that are added afterwards
 		 */
 		void setVerifyCompiler(bool enable);
+
+		/**
+		 * @brief setCheckForUPXCompression
+		 * The check is costly and not required most of the time
+		 * @param enable
+		 */
+		void setCheckForUPXCompression(bool enable) {
+			_check_for_upx_compression = enable;
+		}
+
+		bool getCheckForUPXCompression() const {
+			return _check_for_upx_compression;
+		}
+
 	private:
 
 		ExtensionDescription _findDescription(const std::string &interface_name, const std::string& name, unsigned int version) const;
@@ -374,7 +388,9 @@ namespace extension_system {
 			std::vector<ExtensionDescription> extensions;
 		};
 
-		bool _verify_compiler;
+		bool _verify_compiler = true;
+		bool _check_for_upx_compression = false;
+
 		std::function<void(const std::string &)> _message_handler;
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;

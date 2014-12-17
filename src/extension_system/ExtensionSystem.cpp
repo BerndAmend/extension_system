@@ -32,7 +32,7 @@ static std::string getRealFilename(const std::string &filename) {
 }
 
 ExtensionSystem::ExtensionSystem()
-	: _verify_compiler(true), _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
+	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
 
 bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	std::unique_lock<std::mutex> lock(_mutex);
@@ -75,10 +75,19 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 
 	std::size_t found = t.find(desc_start);
 
-	std::size_t first_end = t.find(desc_end);
+	if(found == std::string::npos) { // no tag found, skip file
+		if(_check_for_upx_compression) {
+			// check only for upx if the file didn't contain any tags at all
+			const std::size_t found_upx_exclamation_mark = t.find(upx_exclamation_mark_string);
+			const std::size_t found_upx = t.find(upx_string);
 
-	if(first_end < found) {
-		_message_handler("addDynamicLibrary: filename=" + filename + " the first end tag appears before the first start tag");
+			if(found_upx != std::string::npos &&
+					found_upx_exclamation_mark != std::string::npos &&
+					found_upx < found_upx_exclamation_mark ) {
+				_message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename + ", it seems the file is compressed using upx. ");
+			}
+		}
+		return false;
 	}
 
 	std::vector<std::unordered_map<std::string, std::string> > data;
@@ -199,15 +208,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		_known_extensions[filePath] = LibraryInfo(extension_list);
 		return true;
 	} else {
-		const std::size_t found_upx_exclamation_mark = t.find(upx_exclamation_mark_string);
-		const std::size_t found_upx = t.find(upx_string);
-
-		if(found_upx != std::string::npos &&
-				found_upx_exclamation_mark != std::string::npos &&
-				found_upx < found_upx_exclamation_mark ) {
-			_message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename + ", it seems the file is compressed using upx. ");
-		}
-
+		// still possible if the file has an invalid start tag
 		return false;
 	}
 }
