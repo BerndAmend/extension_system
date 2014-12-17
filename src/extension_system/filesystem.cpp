@@ -17,14 +17,14 @@
 
 bool extension_system::filesystem::exists(const extension_system::filesystem::path &p)
 {
-	std::string str = p.string();
+	const std::string str = p.string();
 	return access(str.c_str(), R_OK) == 0;
 }
 
 
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path &p)
 {
-	std::string str = p.string();
+	const std::string str = p.string();
 	struct stat sb;
 	return (stat(str.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
@@ -36,8 +36,8 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 	return p;
 #else
 	char buffer[PATH_MAX];
-	std::string path = p.string();
-	char *result = realpath(path.c_str(), buffer);
+	const std::string path = p.string();
+	const char *result = realpath(path.c_str(), buffer);
 	if(result == nullptr)
 		return p; // couldn't resolve symbolic link
 	else
@@ -47,15 +47,14 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 
 void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path &p, const std::function<void(const extension_system::filesystem::path &p)> &func)
 {
-	DIR *dp;
-	struct dirent *ep;
-	std::string path = p.string();
-	dp = opendir (path.c_str());
+	struct dirent *ep = nullptr;
+	const std::string path = p.string();
+	DIR *dp = opendir (path.c_str());
 
 	if (dp != nullptr)
 	{
 		while ((ep = readdir (dp))) {
-			auto name = std::string(ep->d_name);
+			const std::string name = ep->d_name;
 			if(name!="." && name!="..")
 				func(path + "/" + name);
 		}

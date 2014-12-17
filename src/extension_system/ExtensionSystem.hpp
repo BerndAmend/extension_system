@@ -220,7 +220,7 @@ namespace extension_system {
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::string &name) {
 			std::unique_lock<std::mutex> lock(_mutex);
-			auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
+			const auto desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
 			if( desc.isValid() ) {
 				return _createExtension<T>(desc);
 			}
@@ -248,7 +248,7 @@ namespace extension_system {
 		 */
 		template<class T>
 		std::shared_ptr<T> createExtension(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) {
-			auto ext = extensions<T>(metaDataFilter);
+			const auto ext = extensions<T>(metaDataFilter);
 			if(ext.empty())
 				return std::shared_ptr<T>();
 			return _createExtension<T>(ext[0]);
@@ -314,7 +314,7 @@ namespace extension_system {
 						if(dynlib == nullptr)
 							continue;
 
-						auto func = dynlib->getProcAddress<T* (T *, const char **)>(j.entry_point());
+						const auto func = dynlib->getProcAddress<T* (T *, const char **)>(j.entry_point());
 
 						if( func != nullptr ) {
 							T* ex = func(nullptr, nullptr);

@@ -68,10 +68,10 @@
 			}
 
 			path extension() const {
-				auto name = filename().string();
+				const auto name = filename().string();
 				if(name == "." || name == "..")
 					return path();
-				auto pos = name.find_last_of('.');
+				const auto pos = name.find_last_of('.');
 				if(pos == std::string::npos)
 					return path();
 				return name.substr(pos);
