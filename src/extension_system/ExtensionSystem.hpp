@@ -260,7 +260,7 @@ namespace extension_system {
 		 * If extension was not created by this extension system instance, an empty ExtensionDescription will be returned.
 		 */
 		template<class T>
-		ExtensionDescription findDescription(const std::shared_ptr<T> extension) const {
+		ExtensionDescription findDescription(const std::shared_ptr<T> &extension) const {
 			std::unique_lock<std::mutex> lock(_mutex);
 			return _findDescription(extension);
 		}
