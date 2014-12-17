@@ -15,12 +15,12 @@ int main() {
 	extensionSystem.searchDirectory(".");
 
 	// iterate through all known Interface2 extensions and print metadata information
-	for( auto extension : extensionSystem.extensions<Interface2>()) {
-		std::cout<<"Extension: " << extension.name() << "(" << std::to_string(extension.version()) << ")" << std::endl;
-		std::cout<<"Description: " << extension.description() << std::endl;
-		std::cout<<"Author: "<< extension.getExtended()["author"] << std::endl;
-		std::cout<<"Vendor: "<< extension.getExtended()["vendor"] << std::endl;
-		std::cout<<"Target: "<< extension.getExtended()["target_product"] << std::endl;
+	for( const auto &extension : extensionSystem.extensions<Interface2>()) {
+		std::cout<<"Extension: " << extension.name() << "(" << extension.version() << ")\n"
+				<<"Description: " << extension.description() << "\n"
+				<<"Author: "<< extension["author"] << "\n"
+				<<"Vendor: "<< extension["vendor"] << "\n"
+				<<"Target: "<< extension["target_product"] << "\n";
 	}
 
 	// create extension
