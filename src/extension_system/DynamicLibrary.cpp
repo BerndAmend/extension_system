@@ -9,9 +9,6 @@
 #include <extension_system/macros.hpp>
 #include <extension_system/DynamicLibrary.hpp>
 
-#include <stdexcept>
-#include <sstream>
-
 using namespace extension_system;
 
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
