@@ -361,7 +361,7 @@ namespace extension_system {
 		std::function<void(const std::string &)> _message_handler;
 		// used to avoid removing extensions while destroying them from the loadedExtensions map
 		std::shared_ptr<bool> _extension_system_alive;
-		mutable std::mutex	_mutex;
+		mutable std::mutex _mutex;
 		std::unordered_map<std::string, LibraryInfo> _known_extensions;
 		std::unordered_map<const void*, ExtensionDescription> _loaded_extensions;
 
