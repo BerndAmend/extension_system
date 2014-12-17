@@ -31,6 +31,15 @@ static std::string getRealFilename(const std::string &filename) {
 	return canonical(filen).generic_string();
 }
 
+static std::size_t find_string(const std::vector<char> &data, const std::string &search_string, std::size_t start_pos) {
+	// HINT: memmem was much slower than std::search
+	const char *found = std::search(data.data()+start_pos, data.data()+data.size(), search_string.c_str(), search_string.c_str()+search_string.length());
+	if(found == data.data()+data.size())
+		return std::string::npos;
+	else
+		return static_cast<std::size_t>(found-data.data());
+}
+
 ExtensionSystem::ExtensionSystem()
 	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
 
@@ -71,15 +80,13 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 	file.read(str.data(), file_length);
 	file.close();
 
-	std::string t(str.data(), str.size());
-
-	std::size_t found = t.find(desc_start);
+	std::size_t found = find_string(str, desc_start, 0);
 
 	if(found == std::string::npos) { // no tag found, skip file
 		if(_check_for_upx_compression) {
 			// check only for upx if the file didn't contain any tags at all
-			const std::size_t found_upx_exclamation_mark = t.find(upx_exclamation_mark_string);
-			const std::size_t found_upx = t.find(upx_string);
+			const std::size_t found_upx_exclamation_mark = find_string(str, upx_exclamation_mark_string, 0);
+			const std::size_t found_upx = find_string(str, upx_string, 0);
 
 			if(found_upx != std::string::npos &&
 					found_upx_exclamation_mark != std::string::npos &&
@@ -96,7 +103,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		std::size_t start = found;
 
 		// search the end tag
-		found=t.find(desc_end, found+1);
+		found = find_string(str, desc_end, found+1);
 		std::size_t end = found;
 
 		if(end == std::string::npos) { // end tag not found
@@ -105,7 +112,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 		}
 
 		// search the next start tag and check if it is interleaved with current section
-		found=t.find(desc_start, start+1);
+		found = find_string(str, desc_start, start+1);
 
 		if(found < end ) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
@@ -146,7 +153,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
 		}
 
-		found=t.find(desc_start, end);
+		found = find_string(str, desc_start, end);
 	}
 
 	std::vector<ExtensionDescription> extension_list;
