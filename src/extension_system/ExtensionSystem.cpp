@@ -297,13 +297,13 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
 }
 
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const {
-	unsigned int highesVersion = 0;
+	unsigned int highest_version = 0;
 	const ExtensionDescription *desc = nullptr;
 
 	for(const auto &i : _known_extensions) {
 		for(const auto &j : i.second.extensions) {
-			if(j.interface_name() == interface_name && j.name() == name && j.version() > highesVersion ) {
-				highesVersion = j.version();
+			if(j.interface_name() == interface_name && j.name() == name && j.version() > highest_version ) {
+				highest_version = j.version();
 				desc = &j;
 			}
 		}
