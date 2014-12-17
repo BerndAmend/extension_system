@@ -15,6 +15,89 @@
 #include <extension_system/filesystem.hpp>
 #include <iostream>
 
+#ifdef EXTENSION_SYSTEM_OS_LINUX
+	#include <sys/mman.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <unistd.h>
+
+	class MemoryMap {
+	public:
+		MemoryMap() {}
+		MemoryMap(const MemoryMap&) =delete;
+		MemoryMap& operator=(const MemoryMap&) =delete;
+		~MemoryMap() {
+			close();
+		}
+
+		bool open(const std::string &filename) {
+			struct stat sb;
+			int fd = ::open(filename.c_str(), O_RDONLY);
+
+			if(fd == -1)
+				return false;
+
+			fstat(fd, &sb);
+
+			_size = sb.st_size;
+
+			int flags =  MAP_FILE | MAP_PRIVATE;
+
+			#ifdef MAP_POPULATE
+			flags |= MAP_POPULATE;
+			#endif
+
+			char *addr = reinterpret_cast<char *>(mmap(NULL, _size, PROT_READ, flags, fd, 0));
+
+			::close(fd);
+
+			if (addr == MAP_FAILED)
+				return false;
+
+			_data = addr;
+			return true;
+		}
+
+		void close() {
+			if(_data != nullptr) {
+				munmap(_data,_size);
+				_data = nullptr;
+				_size = 0;
+			}
+		}
+
+		char *data() { return _data; }
+
+		std::size_t size() const { return _size; }
+
+	private:
+		char *_data = nullptr;
+		std::size_t _size = 0;
+	};
+#else
+	class MemoryMap {
+	public:
+		MemoryMap() {}
+		~MemoryMap() {
+			close();
+		}
+
+		bool open(const std::string &filename) {
+			return false;
+		}
+
+		void close() {}
+
+		const char *data() const { return _data; }
+
+		std::size_t size() const { return _size; }
+
+	private:
+		const char *_data = nullptr;
+		std::size_t _size = 0;
+	};
+#endif
+
 using namespace extension_system;
 
 static std::string getRealFilename(const std::string &filename) {
@@ -69,24 +152,40 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		return false;
 	}
 
-	std::ifstream file(filePath, std::ios::in | std::ios::binary | std::ios::ate);
+	std::size_t file_length = 0;
+	char *file_content = nullptr;
 
-	std::ifstream::pos_type file_length = file.tellg();
+	std::ifstream file;
+	MemoryMap memoryMap;
 
-	if(file_length <= 0) {
-		_message_handler("invalid file size");
-		return false;
+	if(memoryMap.open(filePath)) {
+		file_length = memoryMap.size();
+		file_content = memoryMap.data();
+	} else {
+		file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
+
+		if(!file) {
+			_message_handler("couldn't open file");
+			return false;
+		}
+
+		file_length = file.tellg();
+
+		if(file_length <= 0) {
+			_message_handler("invalid file size");
+			return false;
+		}
+
+		file.seekg(0, std::ios::beg);
+
+		if(buffer.size() < static_cast<unsigned int>(file_length))
+			buffer.resize(static_cast<unsigned int>(file_length));
+
+		file_content = buffer.data();
+
+		file.read(file_content, file_length);
+		file.close();
 	}
-
-	file.seekg(0, std::ios::beg);
-
-	if(buffer.size() < static_cast<unsigned int>(file_length))
-		buffer.resize(static_cast<unsigned int>(file_length));
-
-	char *file_content = buffer.data();
-
-	file.read(file_content, file_length);
-	file.close();
 
 	std::size_t found = find_string(file_content, file_length, desc_start, 0);
 
