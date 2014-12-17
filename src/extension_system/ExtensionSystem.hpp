@@ -346,15 +346,11 @@ namespace extension_system {
 				return ExtensionDescription();
 		}
 
-		struct LibraryInfo
-		{
+		struct LibraryInfo {
 			LibraryInfo() {}
-// TODO check if we can enable them for msvc
-#ifndef EXTENSION_SYSTEM_COMPILER_MSVC
 			LibraryInfo(const LibraryInfo&) = delete;
 			LibraryInfo& operator=(const LibraryInfo&) = delete;
 			LibraryInfo& operator=(LibraryInfo &&) = default;
-#endif
 			LibraryInfo(const std::vector<ExtensionDescription>& ex) : extensions(ex) {}
 
 			std::weak_ptr<DynamicLibrary> dynamic_library;
