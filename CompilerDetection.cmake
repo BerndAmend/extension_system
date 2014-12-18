@@ -54,13 +54,6 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 	elseif(EXTENSION_SYSTEM_COMPILER_INTEL)
 		add_definitions(-std=c++11)
 		add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
-		option(EXTENSION_SYSTEM_INTEL_STATIC_ANALYSIS "sets all required flags for the intel compiler to generate static analysis information" OFF)
-		if(EXTENSION_SYSTEM_INTEL_STATIC_ANALYSIS)
-			add_definitions(-diag-enable sc3)
-			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -diag-enable sc3")
-			set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -diag-enable sc3")
-			set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -diag-enable sc3")
-		endif()
 	elseif(EXTENSION_SYSTEM_COMPILER_MSVC)
 		# enable parallel builds
 		add_definitions(/MP)
