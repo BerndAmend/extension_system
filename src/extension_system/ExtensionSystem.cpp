@@ -15,6 +15,10 @@
 #include <extension_system/filesystem.hpp>
 #include <iostream>
 
+#ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
+	#include <boost/algorithm/searching/boyer_moore.hpp>
+#endif
+
 #ifdef EXTENSION_SYSTEM_OS_LINUX
 	#include <sys/mman.h>
 	#include <sys/stat.h>
@@ -114,14 +118,24 @@ static std::string getRealFilename(const std::string &filename) {
 	return canonical(filen).generic_string();
 }
 
-static std::size_t find_string(const char *data, std::size_t data_size, const std::string &search_string, std::size_t start_pos) {
-	// HINT: memmem was much slower than std::search
-	const char *found = std::search(data+start_pos, data+data_size, search_string.c_str(), search_string.c_str()+search_string.length());
-	if(found == data+data_size)
-		return std::string::npos;
-	else
-		return static_cast<std::size_t>(found-data);
-}
+#ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
+	using string_search = boost::algorithm::boyer_moore<const char*>;
+#else
+	class string_search {
+	public:
+		string_search(const char *pattern_first, const char *pattern_last)
+			: pattern_first(pattern_first), pattern_last(pattern_last) {}
+
+		const char *operator()(const char *first, const char *last) const {
+			// HINT: memmem is much slower than std::search
+			return std::search(first, last, pattern_first, pattern_last);
+		}
+
+	private:
+		const char *pattern_first;
+		const char *pattern_last;
+	};
+#endif
 
 ExtensionSystem::ExtensionSystem()
 	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
@@ -153,7 +167,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 	}
 
 	std::size_t file_length = 0;
-	char *file_content = nullptr;
+	const char * file_content = nullptr;
 
 	std::ifstream file;
 	MemoryMap memoryMap;
@@ -183,20 +197,27 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 
 		file_content = buffer.data();
 
-		file.read(file_content, file_length);
+		file.read(buffer.data(), file_length);
 		file.close();
 	}
 
-	std::size_t found = find_string(file_content, file_length, desc_start, 0);
+	const char *file_end = file_content+file_length;
 
-	if(found == std::string::npos) { // no tag found, skip file
+	const std::string start_string = desc_start;
+	string_search search_start(start_string.c_str(), start_string.c_str()+start_string.length());
+
+	const char *found = search_start(file_content, file_end);
+
+	if(found == file_end) { // no tag found, skip file
 		if(_check_for_upx_compression) {
+			string_search search_upx(upx_string.c_str(), upx_string.c_str()+upx_string.length());
+			string_search search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(), upx_exclamation_mark_string.c_str()+upx_exclamation_mark_string.length());
 			// check only for upx if the file didn't contain any tags at all
-			const std::size_t found_upx_exclamation_mark = find_string(file_content, file_length, upx_exclamation_mark_string, 0);
-			const std::size_t found_upx = find_string(file_content, file_length, upx_string, 0);
+			const char *found_upx_exclamation_mark = search_upx_exclamation_mark(file_content, file_end);
+			const char *found_upx = search_upx(file_content, file_end);
 
-			if(found_upx != std::string::npos &&
-					found_upx_exclamation_mark != std::string::npos &&
+			if(found_upx != file_end &&
+					found_upx_exclamation_mark != file_end &&
 					found_upx < found_upx_exclamation_mark ) {
 				_message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename + ", it seems the file is compressed using upx. ");
 			}
@@ -204,29 +225,32 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		return false;
 	}
 
+	const std::string end_string = desc_end;
+	string_search search_end(end_string.c_str(), end_string.c_str()+end_string.length());
+
 	std::vector<std::unordered_map<std::string, std::string> > data;
 
-	while(found != std::string::npos) {
-		std::size_t start = found;
+	while(found != file_end) {
+		const char*start = found;
 
 		// search the end tag
-		found = find_string(file_content, file_length, desc_end, found+1);
-		std::size_t end = found;
+		found = search_end(found+1, file_end);
+		const char *end = found;
 
-		if(end == std::string::npos) { // end tag not found
+		if(end == file_end) { // end tag not found
 			_message_handler("addDynamicLibrary: filename=" + filename + " end tag was missing");
 			break;
 		}
 
 		// search the next start tag and check if it is interleaved with current section
-		found = find_string(file_content, file_length, desc_start, start+1);
+		found = search_start(start+1, file_end);
 
 		if(found < end ) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
 			continue;
 		}
 
-		const std::string raw = std::string(file_content+start, end-start-1);
+		const std::string raw = std::string(start, end-start-1);
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
@@ -260,7 +284,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 			_message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
 		}
 
-		found = find_string(file_content, file_length, desc_start, end);
+		found = search_start(end, file_end);
 	}
 
 	std::vector<ExtensionDescription> extension_list;

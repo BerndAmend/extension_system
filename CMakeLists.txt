@@ -16,6 +16,16 @@ endif()
 
 include("CompilerDetection.cmake")
 
+include(CheckIncludeFileCXX)
+
+# TODO use find_package(Boost) to find it if possible
+CHECK_INCLUDE_FILE_CXX("boost/algorithm/searching/boyer_moore.hpp" EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+
+if(EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+	message("Use boost/algorithm/searching/boyer_moore.hpp to speed-up searching for extensions")
+	add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+endif()
+
 include_directories(src)
 
 # library
