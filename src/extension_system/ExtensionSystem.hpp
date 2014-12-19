@@ -175,18 +175,18 @@ namespace extension_system {
 
 		/**
 		 * Scans a directory for dynamic libraries and calls addDynamicLibrary for every found library
-		 * This function does not recurse to subdirectories.
 		 * @param path Path to search in for extensions
+		 * @param recursive Search in subdirectories
 		 */
-		void searchDirectory(const std::string &path);
+		void searchDirectory(const std::string &path, bool recursive=false);
 
 		/**
 		 * Scans a directory for dynamic libraries and calls addDynamicLibrary for every found library whose file begins with required_prefix
-		 * This function does not recurse to subdirectories.
 		 * @param path Path to search in for extensions
 		 * @param required_prefix Required prefix for libraries
+		 * @param recursive Search in subdirectories
 		 */
-		void searchDirectory(const std::string &path, const std::string &required_prefix);
+		void searchDirectory(const std::string &path, const std::string &required_prefix, bool recursive=false);
 
 		/**
 		 * Returns a list of all known extensions

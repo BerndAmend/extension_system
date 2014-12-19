@@ -27,14 +27,21 @@
 			return filen.filename();
 		}
 
-		//
-		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func) {
+		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func, bool recursive) {
 			path someDir(path);
-			directory_iterator end_iter;
 
-			if ( exists(someDir) && is_directory(someDir))
+			if ( !exists(someDir) && !is_directory(someDir))
+				return;
+
+			if(recursive) {
+				directory_iterator end_iter;
 				for( directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
 					func(dir_iter>path());
+			} else {
+				recursive_directory_iterator end_iter;
+				for( recursive_directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
+					func(dir_iter>path());
+			}
 		}
 	}}
 #else
@@ -76,6 +83,15 @@
 					return path();
 				return name.substr(pos);
 			}
+
+			 path operator/(const std::string& rhs) const {
+				 return path(this->string() + "/" + rhs);
+			 }
+
+			 path operator/(const path& rhs) const {
+				 return (*this) / rhs.string();
+			 }
+
 		private:
 			std::string _pathname;
 		};
@@ -84,7 +100,7 @@
 		bool is_directory(const path &p);
 		path canonical(const path &p);
 
-		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func);
+		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func, bool recursive);
 
 	}}
 #endif

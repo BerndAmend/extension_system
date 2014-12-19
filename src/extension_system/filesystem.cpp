@@ -45,23 +45,42 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 #endif
 }
 
-void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path &p, const std::function<void(const extension_system::filesystem::path &p)> &func)
+void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path &root, const std::function<void(const extension_system::filesystem::path &p)> &func, bool recursive)
 {
-	struct dirent *ep = nullptr;
-	const std::string path = p.string();
-	DIR *dp = opendir (path.c_str());
+	const std::function<void(const extension_system::filesystem::path &p)>
+			handle_dir = [&func, &recursive, &handle_dir](const extension_system::filesystem::path &p) {
 
-	if (dp != nullptr)
-	{
-		while ((ep = readdir (dp))) {
-			const std::string name = ep->d_name;
-			if(name!="." && name!="..")
-				func(path + "/" + name);
+		const std::string path_string = p.string();
+		DIR *dp = opendir (path_string.c_str());
+
+		if (dp != nullptr)
+		{
+			dirent *ep = nullptr;
+			while ((ep = readdir (dp))) {
+				const std::string name = ep->d_name;
+				const filesystem::path full_name = p / name;
+
+				if(name=="." || name=="..")
+					continue;
+
+	#ifdef _DIRENT_HAVE_D_TYPE
+				if(ep->d_type == DT_REG || ep->d_type == DT_LNK)
+	#endif
+					func(full_name);
+	#ifdef _DIRENT_HAVE_D_TYPE
+				else if(ep->d_type == DT_DIR && recursive)
+	#endif
+					handle_dir(full_name);
+			}
+
+			(void) closedir (dp);
+		} else {
+			// not a directory???
 		}
+	};
 
-		(void) closedir (dp);
-	}
-	//else throw std::runtime_error("Couldn't open the directory");
+
+	handle_dir(root);
 }
 
 #endif

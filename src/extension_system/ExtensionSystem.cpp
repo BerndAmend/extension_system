@@ -360,16 +360,16 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 		_known_extensions.erase(iter);
 }
 
-void ExtensionSystem::searchDirectory( const std::string& path) {
+void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
 	std::vector<char> buffer;
 	std::unique_lock<std::mutex> lock(_mutex);
 	filesystem::forEachFileInDirectory(path, [this, &buffer](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension())
 			_addDynamicLibrary(p.string(), buffer);
-	});
+	}, recursive);
 }
 
-void ExtensionSystem::searchDirectory( const std::string& path, const std::string &required_prefix) {
+void ExtensionSystem::searchDirectory(const std::string& path, const std::string &required_prefix, bool recursive) {
 	std::vector<char> buffer;
 	std::unique_lock<std::mutex> lock(_mutex);
 	const std::size_t required_prefix_length = required_prefix.length();
@@ -377,7 +377,7 @@ void ExtensionSystem::searchDirectory( const std::string& path, const std::strin
 		if (p.extension().string() == DynamicLibrary::fileExtension() &&
 				p.filename().string().compare(0, required_prefix_length, required_prefix)==0)
 			_addDynamicLibrary(p.string(), buffer);
-	});
+	}, recursive);
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter) const
