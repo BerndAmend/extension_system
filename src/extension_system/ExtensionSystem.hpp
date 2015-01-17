@@ -257,21 +257,6 @@ namespace extension_system {
 		}
 
 		/**
-		 * Create an instance of an extension using a metaDataFilter.
-		 * If multiple versions match the filter the first one as returned by extensions(metaDataFilter) is choosen.
-		 * Instantiated extension can outlive the ExtensionSystem (instance)
-		 * @param metaDataFilter metaDataFilter that should be used to create the extension
-		 * @return an instance of an extension class or a nullptr, if extension could not be instantiated
-		 */
-		template<class T>
-		std::shared_ptr<T> createExtension(const std::vector< std::pair< std::string, std::string > > &metaDataFilter) {
-			const auto ext = extensions<T>(metaDataFilter);
-			if(ext.empty())
-				return std::shared_ptr<T>();
-			return _createExtension<T>(ext[0]);
-		}
-
-		/**
 		 * @param extension Instance of an extension.
 		 * @returns ExtensionDescription of extension.
 		 * If extension was not created by this extension system instance, an empty ExtensionDescription will be returned.

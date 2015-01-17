@@ -51,11 +51,15 @@ int main() {
 
 	std::cout<<"done"<<std::endl;
 
-	for(const auto &i : extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}})) std::cout << i.toString() << "\n";
+	auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
+	for(const auto &i : filteredExtensions) std::cout << i.toString() << "\n";
 
-	auto e4 = extensionSystem.createExtension<IExt2>({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
-	if(e4 != nullptr) {
-		e4->test2();
+	if( filteredExtensions.size() != 0 )
+	{
+		auto e4 = extensionSystem.createExtension<IExt2>(filteredExtensions[0]);
+		if(e4 != nullptr) {
+			e4->test2();
+		}
 	}
 
 	return 0;
