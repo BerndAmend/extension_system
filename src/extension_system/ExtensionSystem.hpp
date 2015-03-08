@@ -186,7 +186,7 @@ namespace extension_system {
 		 * @param required_prefix Required prefix for libraries
 		 * @param recursive Search in subdirectories
 		 */
-		void searchDirectory(const std::string &path, const std::string &required_prefix, bool recursive=false);
+		void searchDirectory(const std::string &path, const std::string &required_prefix, bool recursive);
 
 		/**
 		 * Returns a list of all known extensions
