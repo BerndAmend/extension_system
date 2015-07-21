@@ -3,6 +3,9 @@
 # (See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
 cmake_minimum_required(VERSION 2.8)
+if("${CMAKE_MAJOR_VERSION}" GREATER 2)
+	cmake_policy(SET CMP0048 NEW)
+endif()
 
 project(extension_system)
 
