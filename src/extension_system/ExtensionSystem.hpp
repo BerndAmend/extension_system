@@ -273,7 +273,7 @@ namespace extension_system {
 		 * The default message handler prints to std::cerr
 		 * @param func Message handler function or nullptr if messages should be disabled.
 		 */
-		void setMessageHandler(std::function<void(const std::string &)> &func) {
+		void setMessageHandler(const std::function<void(const std::string &)> &func) {
 			if(func == nullptr)
 				_message_handler = [](const std::string &){};
 			else
