@@ -94,4 +94,12 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread -fPIE -pie")
 		endif()
 	endif()
+
+	# detect android
+	include(CheckCXXSourceCompiles)
+	CHECK_CXX_SOURCE_COMPILES("
+		#ifndef __ANDROID__
+			#error Android
+		#endif
+	" EXTENSION_SYSTEM_ANDROID)
 endif()

@@ -83,6 +83,15 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 		set_target_properties(extension_system_example2 PROPERTIES DEBUG_POSTFIX d)
 	endif()
 
+	if(DEFINED EXTENSION_SYSTEM_ANDROID)
+		target_link_libraries(extension_system_test_lib gnustl_shared)
+		target_link_libraries(extension_system_test gnustl_shared)
+		target_link_libraries(extension_system_example1_extension gnustl_shared)
+		target_link_libraries(extension_system_example1 gnustl_shared)
+		target_link_libraries(extension_system_example2_extension gnustl_shared)
+		target_link_libraries(extension_system_example2 gnustl_shared)
+	endif()
+
 	install(TARGETS extension_system
 		ARCHIVE DESTINATION lib
 		LIBRARY DESTINATION lib

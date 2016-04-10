@@ -10,6 +10,7 @@
 
 #ifndef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
