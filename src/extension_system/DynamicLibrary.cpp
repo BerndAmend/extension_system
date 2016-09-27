@@ -83,7 +83,7 @@ bool DynamicLibrary::isValid() const {
 
 void DynamicLibrary::setLastError() {
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
-	_last_error = GetLastError();
+	_last_error = std::to_string(GetLastError());
 #else
 	_last_error = dlerror();
 #endif
