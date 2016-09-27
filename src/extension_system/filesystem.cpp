@@ -8,7 +8,30 @@
 */
 #include <extension_system/filesystem.hpp>
 
-#ifndef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+#ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+	using namespace extension_system::filesystem;
+
+	path extension_system::filesystem::canonical(const path &p) {
+		return p.filename();
+	}
+
+	void extension_system::filesystem::forEachFileInDirectory(const path &p, const std::function<void(const path &p)> &func, bool recursive) {
+		path someDir(p);
+
+		if ( !exists(someDir) && !is_directory(someDir))
+			return;
+
+		if(recursive) {
+			directory_iterator end_iter;
+			for( directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
+				func(dir_iter->path());
+		} else {
+			recursive_directory_iterator end_iter;
+			for( recursive_directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
+				func(dir_iter->path());
+		}
+	}
+#else
 
 #include <stdlib.h>
 #include <sys/types.h>

@@ -22,27 +22,8 @@
 	namespace extension_system { namespace filesystem {
 		using namespace std::tr2::sys; // >=VS2012
 
-		//
-		path canonical(const path &p) {
-			return filen.filename();
-		}
-
-		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func, bool recursive) {
-			path someDir(path);
-
-			if ( !exists(someDir) && !is_directory(someDir))
-				return;
-
-			if(recursive) {
-				directory_iterator end_iter;
-				for( directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
-					func(dir_iter>path());
-			} else {
-				recursive_directory_iterator end_iter;
-				for( recursive_directory_iterator dir_iter(someDir); dir_iter != end_iter ; ++dir_iter)
-					func(dir_iter>path());
-			}
-		}
+		path canonical(const path &p);
+		void forEachFileInDirectory(const path &p, const std::function<void(const path &p)> &func, bool recursive);
 	}}
 #else
 	namespace extension_system { namespace filesystem {
