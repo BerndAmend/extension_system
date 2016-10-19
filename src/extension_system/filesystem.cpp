@@ -38,6 +38,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <climits>
 
 bool extension_system::filesystem::exists(const extension_system::filesystem::path &p)
 {
