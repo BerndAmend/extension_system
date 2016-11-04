@@ -14,7 +14,7 @@ class Extension : public Interface1
 {
 public:
 	virtual void test1() override {
-		std::cout<<"Hello from Extension1"<<std::endl;
+		std::cout<<"Hello from Extension1\n";
 	}
 };
 

@@ -34,22 +34,22 @@ int main() {
 		e1->test1();
 		auto i = extensionSystem.findDescription(e1);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i.toString()<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<"\n";
 	}
 	if(e2 != nullptr) {
 		e2->test1();
 		auto i = extensionSystem.findDescription(e2);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i.toString()<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<"\n";
 	}
 	if(e3 != nullptr) {
 		e3->test2();
 		auto i = extensionSystem.findDescription(e3);
 		if(i.isValid())
-			std::cout<<"Description:\n"<<i.toString()<<std::endl;
+			std::cout<<"Description:\n"<<i.toString()<<"\n";
 	}
 
-	std::cout<<"done"<<std::endl;
+	std::cout<<"done\n";
 
 	auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
 	for(const auto &i : filteredExtensions) std::cout << i.toString() << "\n";

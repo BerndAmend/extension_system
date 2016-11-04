@@ -28,6 +28,6 @@ int main() {
 	if(e1 != nullptr) {
 		e1->test1();
 	}
-	std::cout<<"Done."<<std::endl;
+	std::cout<<"Done.\n";
 	return 0;
 }
