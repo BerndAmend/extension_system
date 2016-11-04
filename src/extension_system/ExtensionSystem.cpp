@@ -104,7 +104,8 @@
 
 using namespace extension_system;
 
-static std::string getRealFilename(const std::string &filename) {
+namespace {
+std::string getRealFilename(const std::string &filename) {
 	filesystem::path filen(filename);
 
 	if (!filesystem::exists(filen)) { // check if the file exists
@@ -120,6 +121,18 @@ static std::string getRealFilename(const std::string &filename) {
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
 	using string_search = boost::algorithm::boyer_moore<const char*>;
+
+	// boost broke compatibility
+	// https://svn.boost.org/trac/boost/ticket/12552
+	template <typename corpusIter>
+	corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter> &p) {
+		return p.first;
+	}
+	template <typename corpusIter>
+	corpusIter get_first_from_pair(corpusIter p) {
+		return p;
+	}
+
 #else
 	class string_search {
 	public:
@@ -136,6 +149,8 @@ static std::string getRealFilename(const std::string &filename) {
 		const char *pattern_last;
 	};
 #endif
+
+}
 
 ExtensionSystem::ExtensionSystem()
 	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
@@ -162,7 +177,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 	auto already_loaded = _known_extensions.find(filePath);
 
 	// don't reload library, if there are already references to one contained extension
-	if( already_loaded!=_known_extensions.end() && !already_loaded->second.dynamic_library.expired() ) {
+	if( already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired() ) {
 		return false;
 	}
 
@@ -206,15 +221,15 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 	const std::string start_string = desc_start;
 	string_search search_start(start_string.c_str(), start_string.c_str()+start_string.length());
 
-	const char *found = search_start(file_content, file_end);
+	const char *found = get_first_from_pair(search_start(file_content, file_end));
 
 	if(found == file_end) { // no tag found, skip file
 		if(_check_for_upx_compression) {
 			string_search search_upx(upx_string.c_str(), upx_string.c_str()+upx_string.length());
 			string_search search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(), upx_exclamation_mark_string.c_str()+upx_exclamation_mark_string.length());
 			// check only for upx if the file didn't contain any tags at all
-			const char *found_upx_exclamation_mark = search_upx_exclamation_mark(file_content, file_end);
-			const char *found_upx = search_upx(file_content, file_end);
+			const char *found_upx_exclamation_mark = get_first_from_pair(search_upx_exclamation_mark(file_content, file_end));
+			const char *found_upx = get_first_from_pair(search_upx(file_content, file_end));
 
 			if(found_upx != file_end &&
 					found_upx_exclamation_mark != file_end &&
@@ -234,7 +249,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		const char*start = found;
 
 		// search the end tag
-		found = search_end(found+1, file_end);
+		found = get_first_from_pair(search_end(found+1, file_end));
 		const char *end = found;
 
 		if(end == file_end) { // end tag not found
@@ -243,7 +258,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		}
 
 		// search the next start tag and check if it is interleaved with current section
-		found = search_start(start+1, file_end);
+		found = get_first_from_pair(search_start(start+1, file_end));
 
 		if(found < end ) {
 			_message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
@@ -284,7 +299,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 			_message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
 		}
 
-		found = search_start(end, file_end);
+		found = get_first_from_pair(search_start(end, file_end));
 	}
 
 	std::vector<ExtensionDescription> extension_list;
