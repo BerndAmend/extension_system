@@ -51,14 +51,15 @@ int main() {
 
 	std::cout<<"done\n";
 
+	std::cout<<"filter test\n";
 	auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
-	for(const auto &i : filteredExtensions) std::cout << i.toString() << "\n";
-
-	if( filteredExtensions.size() != 0 )
-	{
-		auto e4 = extensionSystem.createExtension<IExt2>(filteredExtensions[0]);
+	for(const auto &i : filteredExtensions) {
+		auto e4 = extensionSystem.createExtension<IExt2>(i);
 		if(e4 != nullptr) {
+			std::cout << i.toString() << "\n";
 			e4->test2();
+		} else {
+			std::cout << "Wrong interface:\n" << i.toString() << "\n";
 		}
 	}
 

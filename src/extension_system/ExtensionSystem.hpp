@@ -314,7 +314,7 @@ namespace extension_system {
 
 		template<class T>
 		std::shared_ptr<T> _createExtension(const ExtensionDescription &desc) {
-			if(!desc.isValid())
+			if(!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
 				return std::shared_ptr<T>();
 
 			for(auto &i : _known_extensions) {
