@@ -122,17 +122,6 @@ std::string getRealFilename(const std::string &filename) {
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
 	using string_search = boost::algorithm::boyer_moore<const char*>;
 
-	// boost broke compatibility
-	// https://svn.boost.org/trac/boost/ticket/12552
-	template <typename corpusIter>
-	corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter> &p) {
-		return p.first;
-	}
-	template <typename corpusIter>
-	corpusIter get_first_from_pair(corpusIter p) {
-		return p;
-	}
-
 #else
 	class string_search {
 	public:
@@ -149,6 +138,17 @@ std::string getRealFilename(const std::string &filename) {
 		const char *pattern_last;
 	};
 #endif
+
+// boost broke compatibility
+// https://svn.boost.org/trac/boost/ticket/12552
+template <typename corpusIter>
+corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter> &p) {
+	return p.first;
+}
+template <typename corpusIter>
+corpusIter get_first_from_pair(corpusIter p) {
+	return p;
+}
 
 }
 
