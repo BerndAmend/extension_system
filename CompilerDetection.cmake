@@ -42,7 +42,7 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 						-Woverloaded-virtual)
 	elseif(EXTENSION_SYSTEM_COMPILER_CLANG)
 		add_definitions(-std=c++11 -foptimize-sibling-calls)
-		add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
+		add_definitions(-Wall -Wextra -Weverything -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
 						-Wno-conversion-null -Werror=return-type
 						-Wno-c++98-compat -Wno-c++98-compat-pedantic
 						-Wno-global-constructors -Wno-exit-time-destructors
@@ -50,7 +50,6 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 						-Wno-padded
 						-Wno-weak-vtables
 						-Wno-attributes)
-	# -Weverything triggers to many warnings in qt
 	elseif(EXTENSION_SYSTEM_COMPILER_INTEL)
 		add_definitions(-std=c++11)
 		add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)

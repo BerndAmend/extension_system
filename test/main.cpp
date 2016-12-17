@@ -12,7 +12,7 @@
 
 using namespace extension_system;
 
-std::shared_ptr<IExt1> e1;
+static std::shared_ptr<IExt1> e1;
 
 int main() {
 	ExtensionSystem extensionSystem;

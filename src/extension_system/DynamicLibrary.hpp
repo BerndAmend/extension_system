@@ -39,7 +39,7 @@ namespace extension_system {
 
 	private:
 		const std::string _filename;
-		void *_handle;
+		void *_handle = nullptr;
 		std::string _last_error;
 
 		void setLastError();

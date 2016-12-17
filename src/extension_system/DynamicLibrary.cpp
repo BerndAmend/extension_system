@@ -23,7 +23,7 @@ using namespace extension_system;
 #endif
 
 DynamicLibrary::DynamicLibrary(const std::string &filename)
-	: _filename(filename), _handle(nullptr) {
+	: _filename(filename) {
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
 	_handle = LoadLibraryA(filename.c_str());
 #else

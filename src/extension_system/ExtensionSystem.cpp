@@ -43,7 +43,7 @@
 
 			fstat(fd, &sb);
 
-			_size = sb.st_size;
+			_size = static_cast<std::size_t>(sb.st_size);
 
 			int flags =  MAP_FILE | MAP_PRIVATE;
 
@@ -198,7 +198,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 			return false;
 		}
 
-		file_length = file.tellg();
+		file_length = static_cast<std::size_t>(file.tellg());
 
 		if(file_length <= 0) {
 			_message_handler("invalid file size");
@@ -212,7 +212,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 
 		file_content = buffer.data();
 
-		file.read(buffer.data(), file_length);
+		file.read(buffer.data(), static_cast<std::streamsize>(file_length));
 		file.close();
 	}
 
@@ -265,7 +265,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 			continue;
 		}
 
-		const std::string raw = std::string(start, end-start-1);
+		const std::string raw = std::string(start, static_cast<std::size_t>(end-start-1));
 
 		bool failed = false;
 		std::unordered_map<std::string, std::string> result;
