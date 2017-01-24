@@ -68,8 +68,7 @@ void *DynamicLibrary::getProcAddress(const std::string &name) {
 	return func;
 }
 
-std::string DynamicLibrary::fileExtension()
-{
+std::string DynamicLibrary::fileExtension() {
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
 	return ".dll";
 #else

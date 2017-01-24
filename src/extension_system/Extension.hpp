@@ -10,7 +10,7 @@
 
 #include <extension_system/macros.hpp>
 
-#define  EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
+#define EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
 
 #define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key,value) key "=" value "\0"
 
