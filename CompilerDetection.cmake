@@ -2,16 +2,16 @@
 # Distributed under the Boost Software License, Version 1.0.
 # (See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 if(NOT EXTENSION_SYSTEM_COMPILER_DETECTED)
 	set(EXTENSION_SYSTEM_COMPILER_DETECTED ON)
 
-	if("${CMAKE_CXX_COMPILER}" MATCHES ".*clang${plus}${plus}")
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		set(EXTENSION_SYSTEM_COMPILER_CLANG ON)
-	elseif("${CMAKE_CXX_COMPILER}" MATCHES ".*icc" OR "${CMAKE_CXX_COMPILER}" MATCHES ".*icpc")
+	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 		set(EXTENSION_SYSTEM_COMPILER_INTEL ON)
-	elseif(CMAKE_COMPILER_IS_GNUCXX)
+	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(EXTENSION_SYSTEM_COMPILER_GCC ON)
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
 			message(FATAL_ERROR "C++11 features are required. Therefore a gcc compiler >=4.8 is needed.")
