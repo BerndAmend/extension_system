@@ -75,7 +75,7 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 
 	if(EXTENSION_SYSTEM_COMPILER_GCC OR EXTENSION_SYSTEM_COMPILER_CLANG)
 		set(EXTENSION_SYSTEM_SANITIZE "" CACHE STRING "Sanitizer not all options are available in all compiler versions")
-		set_property(CACHE EXTENSION_SYSTEM_SANITIZE PROPERTY STRINGS "" address memory thread undefined leak)
+		set_property(CACHE EXTENSION_SYSTEM_SANITIZE PROPERTY STRINGS "" none address memory thread undefined leak)
 		if ("${EXTENSION_SYSTEM_SANITIZE}" STREQUAL "address")
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
 			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
