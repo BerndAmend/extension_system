@@ -121,21 +121,20 @@ std::string getRealFilename(const std::string &filename) {
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
 	using string_search = boost::algorithm::boyer_moore<const char*>;
-
 #else
 	class string_search {
 	public:
 		string_search(const char *pattern_first, const char *pattern_last)
-			: pattern_first(pattern_first), pattern_last(pattern_last) {}
+			: pattern_first_(pattern_first), pattern_last_(pattern_last) {}
 
 		const char *operator()(const char *first, const char *last) const {
 			// HINT: memmem is much slower than std::search
-			return std::search(first, last, pattern_first, pattern_last);
+			return std::search(first, last, pattern_first_, pattern_last_);
 		}
 
 	private:
-		const char *pattern_first;
-		const char *pattern_last;
+		const char *pattern_first_;
+		const char *pattern_last_;
 	};
 #endif
 
