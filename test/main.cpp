@@ -19,7 +19,7 @@ int main() {
 
 	extensionSystem.searchDirectory(".");
 
-	for(auto &i : extensionSystem.extensions())
+	for(const auto &i : extensionSystem.extensions())
 		std::cout << i.toString() << "\n";
 
 	std::cout << "\nExtensions with interface IExt1:\n";

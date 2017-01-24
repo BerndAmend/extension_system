@@ -303,7 +303,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 	}
 
 	std::vector<ExtensionDescription> extension_list;
-	for(auto &iter : data) {
+	for(const auto &iter : data) {
 		ExtensionDescription desc(iter);
 		if(		!_verify_compiler  ||
 				(desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
