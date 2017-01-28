@@ -49,10 +49,6 @@ target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 
-if(NOT EXTENSION_SYSTEM_COMPILER_MSVC AND NOT MINGW AND (CMAKE_SIZEOF_VOID_P EQUAL 8))
-	set_target_properties(extension_system PROPERTIES COMPILE_FLAGS "-fPIC")
-endif()
-
 if(EXTENSION_SYSTEM_IS_STANDALONE)
 	# Test library
 	add_library(extension_system_test_lib SHARED test/extension.cpp test/Interfaces.hpp)

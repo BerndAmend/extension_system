@@ -40,6 +40,9 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 		add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
 						-Wno-conversion-null -Werror=return-type -pedantic -Wnon-virtual-dtor
 						-Woverloaded-virtual)
+		add_definitions(-D_FORTIFY_SOURCE=2)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fpic -pie -fPIE -fstack-protector-strong")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now")
 	elseif(EXTENSION_SYSTEM_COMPILER_CLANG)
 		add_definitions(-std=c++11 -foptimize-sibling-calls)
 		add_definitions(-Wall -Wextra -Weverything -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
@@ -50,6 +53,9 @@ if(EXTENSION_SYSTEM_CONFIGURE_COMPILER AND NOT EXTENSION_SYSTEM_COMPILER_CONFIGU
 						-Wno-padded
 						-Wno-weak-vtables
 						-Wno-attributes)
+		add_definitions(-D_FORTIFY_SOURCE=2)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fpic -pie -fPIE -fstack-protector-strong")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now")
 	elseif(EXTENSION_SYSTEM_COMPILER_INTEL)
 		add_definitions(-std=c++11)
 		add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
