@@ -21,7 +21,7 @@
 #define EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, _function_name) \
 	extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *, const char **); \
 	extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *freeExtension, const char **data) { \
-		const char extension_system_export[] = \
+		const char *extension_system_export = \
 			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_START", EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)) \
 			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler", EXTENSION_SYSTEM_COMPILER) \
 			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler_version", EXTENSION_SYSTEM_COMPILER_VERSION_STR) \
