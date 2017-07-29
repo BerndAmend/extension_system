@@ -12,7 +12,7 @@
 class Ext1 : public IExt1
 {
 public:
-	virtual void test1() override {
+	void test1() override {
 		std::cout<<"Hello from Ext1\n";
 	}
 };
@@ -28,7 +28,7 @@ namespace test_namespace {
 			std::cout<<"Hello from Ext1_1\n";
 		}
 	};
-}
+} // namespace test_namespace
 EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extension 2 for testing purposes", EXTENSION_SYSTEM_DESCRIPTION_ENTRY("Test1", "desc1"))
 
 class Ext2 : public extension_system::IExt2

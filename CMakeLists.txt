@@ -78,6 +78,16 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 			#error Android
 		#endif
 	" EXTENSION_SYSTEM_ANDROID)
+
+	find_program(
+		CLANG_TIDY_EXE
+		NAMES "clang-tidy"
+		DOC "Path to clang-tidy executable"
+		)
+	if(CLANG_TIDY_EXE)
+		message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
+		set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}" "-fix" "-checks=*,-cppcoreguidelines-pro-bounds-*,-cppcoreguidelines-pro-type-vararg,-google-build-using-namespace")
+	endif()
 endif()
 
 include(CheckIncludeFileCXX)

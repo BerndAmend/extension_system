@@ -81,7 +81,7 @@
 		bool is_directory(const path &p);
 		path canonical(const path &p);
 
-		void forEachFileInDirectory(const path &p, const std::function<void(const filesystem::path &p)> &func, bool recursive);
+		void forEachFileInDirectory(const path &root, const std::function<void(const filesystem::path &p)> &func, bool recursive);
 
 	}}
 #endif

@@ -6,10 +6,10 @@
 		(See accompanying file LICENSE_1_0.txt or copy at
 		http://www.boost.org/LICENSE_1_0.txt)
 */
-#include <extension_system/macros.hpp>
 #include <extension_system/DynamicLibrary.hpp>
+#include <extension_system/macros.hpp>
 
-using namespace extension_system;
+using extension_system::DynamicLibrary;
 
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
 	#define WIN32_LEAN_AND_MEAN
@@ -29,8 +29,9 @@ DynamicLibrary::DynamicLibrary(const std::string &filename)
 #else
 	_handle = dlopen(filename.c_str(), RTLD_LAZY);
 #endif
-	if(_handle == nullptr)
+	if(_handle == nullptr) {
 		setLastError();
+	}
 }
 
 DynamicLibrary::~DynamicLibrary() {
@@ -52,8 +53,9 @@ const void *DynamicLibrary::getHandle() const {
 }
 
 void *DynamicLibrary::getProcAddress(const std::string &name) {
-	if(!isValid())
+	if(!isValid()) {
 		return nullptr;
+	}
 
 	void *func;
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
@@ -63,8 +65,9 @@ void *DynamicLibrary::getProcAddress(const std::string &name) {
 #else
 	func = dlsym(_handle, name.c_str());
 #endif
-	if(func == nullptr)
+	if(func == nullptr) {
 		setLastError();
+	}
 	return func;
 }
 

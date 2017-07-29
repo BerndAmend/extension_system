@@ -8,38 +8,44 @@
 */
 #include <extension_system/ExtensionSystem.hpp>
 
-#include <fstream>
 #include <algorithm>
-#include <unordered_set>
-#include <extension_system/string.hpp>
 #include <extension_system/filesystem.hpp>
+#include <extension_system/string.hpp>
+#include <fstream>
 #include <iostream>
+#include <unordered_set>
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
 	#include <boost/algorithm/searching/boyer_moore.hpp>
 #endif
 
 #ifdef EXTENSION_SYSTEM_OS_LINUX
+	#include <fcntl.h>
 	#include <sys/mman.h>
 	#include <sys/stat.h>
-	#include <fcntl.h>
 	#include <unistd.h>
 
 	class MemoryMap {
 	public:
-		MemoryMap() {}
-		MemoryMap(const MemoryMap&) =delete;
-		MemoryMap& operator=(const MemoryMap&) =delete;
+		MemoryMap() = default;
+
+		MemoryMap(const MemoryMap&) = delete;
+		MemoryMap& operator=(const MemoryMap&) = delete;
+
+		MemoryMap(MemoryMap&&) noexcept = default;
+		MemoryMap& operator=(MemoryMap&&) noexcept = default;
+
 		~MemoryMap() {
 			close();
 		}
 
 		bool open(const std::string &filename) {
-			struct stat sb;
+			struct stat sb {};
 			int fd = ::open(filename.c_str(), O_RDONLY);
 
-			if(fd == -1)
+			if(fd == -1) {
 				return false;
+			}
 
 			fstat(fd, &sb);
 
@@ -51,14 +57,15 @@
 			flags |= MAP_POPULATE;
 			#endif
 
-			char *addr = reinterpret_cast<char *>(mmap(NULL, _size, PROT_READ, flags, fd, 0));
+			auto addr = mmap(nullptr, _size, PROT_READ, flags, fd, 0);
 
 			::close(fd);
 
-			if (addr == MAP_FAILED)
+			if (addr == MAP_FAILED) { //NOLINT
 				return false;
+			}
 
-			_data = addr;
+			_data = reinterpret_cast<char *>(addr); //NOLINT
 			return true;
 		}
 
@@ -81,7 +88,14 @@
 #else
 	class MemoryMap {
 	public:
-		MemoryMap() {}
+		MemoryMap() = default;
+
+		MemoryMap(const MemoryMap&) = delete;
+		MemoryMap& operator=(const MemoryMap&) = delete;
+
+		MemoryMap(MemoryMap&&) noexcept = default;
+		MemoryMap& operator=(MemoryMap&&) noexcept = default;
+
 		~MemoryMap() {
 			close();
 		}
@@ -149,7 +163,7 @@ corpusIter get_first_from_pair(corpusIter p) {
 	return p;
 }
 
-}
+}  // namespace
 
 ExtensionSystem::ExtensionSystem()
 	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
@@ -206,8 +220,9 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 
 		file.seekg(0, std::ios::beg);
 
-		if(buffer.size() < static_cast<unsigned int>(file_length))
+		if(buffer.size() < static_cast<unsigned int>(file_length)) {
 			buffer.resize(static_cast<unsigned int>(file_length));
+		}
 
 		file_content = buffer.data();
 
@@ -273,14 +288,14 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		split(raw, delimiter, [&](const std::string &iter) {
 			std::size_t pos = iter.find('=');
 			if(pos == std::string::npos) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter +"). Ignore entry.");
+				_message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter +"). Ignore entry."); //NOLINT
 				failed = true;
 				return false;
 			}
 			const auto key = iter.substr(0, pos);
 			const auto value = iter.substr(pos+1);
 			if(result.find(key) != result.end()) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found. Ignore entry");
+				_message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found. Ignore entry"); //NOLINT
 				failed = true;
 				return false;
 			}
@@ -313,7 +328,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 				&& desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
 				&& desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE
 #endif
-				// TODO: check operating system
+				// Should we check the operating system too?
 				)) {
 
 			desc._data.erase(desc_start);
@@ -355,14 +370,14 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vecto
 		}
 	}
 
-	if(!extension_list.empty()) {
-		//TODO: handling of extensions with same name and version number
-		_known_extensions[filePath] = LibraryInfo(extension_list);
-		return true;
-	} else {
+	if(extension_list.empty()) {
 		// still possible if the file has an invalid start tag
 		return false;
 	}
+
+	// The handling of extensions with same name and version number is currently broken
+	_known_extensions[filePath] = LibraryInfo(extension_list);
+	return true;
 }
 
 void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
@@ -370,16 +385,18 @@ void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
 	std::unique_lock<std::mutex> lock(_mutex);
 	auto real_filename = getRealFilename(filename);
 	auto iter = _known_extensions.find(real_filename);
-	if(iter != _known_extensions.end())
+	if(iter != _known_extensions.end()) {
 		_known_extensions.erase(iter);
+	}
 }
 
 void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
 	std::vector<char> buffer;
 	std::unique_lock<std::mutex> lock(_mutex);
 	filesystem::forEachFileInDirectory(path, [this, &buffer](const filesystem::path &p){
-		if (p.extension().string() == DynamicLibrary::fileExtension())
+		if (p.extension().string() == DynamicLibrary::fileExtension()) {
 			_addDynamicLibrary(p.string(), buffer);
+		}
 	}, recursive);
 }
 
@@ -389,8 +406,9 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
 	const std::size_t required_prefix_length = required_prefix.length();
 	filesystem::forEachFileInDirectory(path, [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path &p){
 		if (p.extension().string() == DynamicLibrary::fileExtension() &&
-				p.filename().string().compare(0, required_prefix_length, required_prefix)==0)
+				p.filename().string().compare(0, required_prefix_length, required_prefix)==0) {
 			_addDynamicLibrary(p.string(), buffer);
+		}
 	}, recursive);
 }
 
@@ -398,13 +416,14 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 {
 	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
 
-	for(const auto &f : metaDataFilter )
+	for(const auto &f : metaDataFilter ) {
 		filterMap[f.first].insert(f.second);
+	}
 
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> result;
 
-	for(const auto &i : _known_extensions)
+	for(const auto &i : _known_extensions) {
 		for(const auto &j : i.second.extensions) {
 			// check all filters
 			bool addExtension = true;
@@ -426,29 +445,36 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 					break;
 				}
 			}
-			if( addExtension )
+			if( addExtension ) {
 				result.push_back(j);
+			}
 		}
-	return result;
+	}
 
+	return result;
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
 	std::unique_lock<std::mutex> lock(_mutex);
 	std::vector<ExtensionDescription> list;
 
-	for(const auto &i : _known_extensions)
-		for(const auto &j : i.second.extensions)
+	for(const auto &i : _known_extensions) {
+		for(const auto &j : i.second.extensions) {
 			list.push_back(j);
+		}
+	}
 
 	return list;
 }
 
 ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
-	for(const auto &i : _known_extensions)
-		for(const auto &j : i.second.extensions)
-			if(j.interface_name() == interface_name && j.name() == name && j.version() == version)
+	for(const auto &i : _known_extensions) {
+		for(const auto &j : i.second.extensions) {
+			if(j.interface_name() == interface_name && j.name() == name && j.version() == version) {
 				return j;
+			}
+		}
+	}
 
 	return ExtensionDescription();
 }
@@ -466,7 +492,7 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
 		}
 	}
 
-	return desc ? *desc : ExtensionDescription();
+	return desc != nullptr ? *desc : ExtensionDescription();
 }
 
 
