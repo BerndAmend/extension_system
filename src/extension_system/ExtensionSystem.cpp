@@ -1,10 +1,10 @@
 /**
-	@file
-	@copyright
-		Copyright Bernd Amend and Michael Adam 2014-2017
-		Distributed under the Boost Software License, Version 1.0.
-		(See accompanying file LICENSE_1_0.txt or copy at
-		http://www.boost.org/LICENSE_1_0.txt)
+    @file
+    @copyright
+        Copyright Bernd Amend and Michael Adam 2014-2017
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        http://www.boost.org/LICENSE_1_0.txt)
 */
 #include <extension_system/ExtensionSystem.hpp>
 
@@ -16,486 +16,532 @@
 #include <unordered_set>
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
-	#include <boost/algorithm/searching/boyer_moore.hpp>
+#include <boost/algorithm/searching/boyer_moore.hpp>
 #endif
 
 #ifdef EXTENSION_SYSTEM_OS_LINUX
-	#include <fcntl.h>
-	#include <sys/mman.h>
-	#include <sys/stat.h>
-	#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-	class MemoryMap {
-	public:
-		MemoryMap() = default;
+class MemoryMap
+{
+public:
+    MemoryMap() = default;
 
-		MemoryMap(const MemoryMap&) = delete;
-		MemoryMap& operator=(const MemoryMap&) = delete;
+    MemoryMap(const MemoryMap&) = delete;
+    MemoryMap& operator=(const MemoryMap&) = delete;
 
-		MemoryMap(MemoryMap&&) noexcept = default;
-		MemoryMap& operator=(MemoryMap&&) noexcept = default;
+    MemoryMap(MemoryMap&&) noexcept = default;
+    MemoryMap& operator=(MemoryMap&&) noexcept = default;
 
-		~MemoryMap() {
-			close();
-		}
+    ~MemoryMap()
+    {
+        close();
+    }
 
-		bool open(const std::string &filename) {
-			struct stat sb {};
-			int fd = ::open(filename.c_str(), O_RDONLY);
+    bool open(const std::string& filename)
+    {
+        // clang-format off
+        struct stat sb {};
+        // clang-format on
+        int fd = ::open(filename.c_str(), O_RDONLY);
 
-			if(fd == -1) {
-				return false;
-			}
+        if (fd == -1) {
+            return false;
+        }
 
-			fstat(fd, &sb);
+        fstat(fd, &sb);
 
-			_size = static_cast<std::size_t>(sb.st_size);
+        _size = static_cast<std::size_t>(sb.st_size);
 
-			int flags =  MAP_FILE | MAP_PRIVATE;
+        int flags = MAP_FILE | MAP_PRIVATE;
 
-			#ifdef MAP_POPULATE
-			flags |= MAP_POPULATE;
-			#endif
+#ifdef MAP_POPULATE
+        flags |= MAP_POPULATE;
+#endif
 
-			auto addr = mmap(nullptr, _size, PROT_READ, flags, fd, 0);
+        auto addr = mmap(nullptr, _size, PROT_READ, flags, fd, 0);
 
-			::close(fd);
+        ::close(fd);
 
-			if (addr == MAP_FAILED) { //NOLINT
-				return false;
-			}
+        if (addr == MAP_FAILED) { // NOLINT
+            return false;
+        }
 
-			_data = reinterpret_cast<char *>(addr); //NOLINT
-			return true;
-		}
+        _data = reinterpret_cast<char*>(addr); // NOLINT
+        return true;
+    }
 
-		void close() {
-			if(_data != nullptr) {
-				munmap(_data,_size);
-				_data = nullptr;
-				_size = 0;
-			}
-		}
+    void close()
+    {
+        if (_data != nullptr) {
+            munmap(_data, _size);
+            _data = nullptr;
+            _size = 0;
+        }
+    }
 
-		char *data() { return _data; }
+    char* data()
+    {
+        return _data;
+    }
 
-		std::size_t size() const { return _size; }
+    std::size_t size() const
+    {
+        return _size;
+    }
 
-	private:
-		char *_data = nullptr;
-		std::size_t _size = 0;
-	};
+private:
+    char*       _data = nullptr;
+    std::size_t _size = 0;
+};
 #else
-	class MemoryMap {
-	public:
-		MemoryMap() = default;
+class MemoryMap
+{
+public:
+    MemoryMap() = default;
 
-		MemoryMap(const MemoryMap&) = delete;
-		MemoryMap& operator=(const MemoryMap&) = delete;
+    MemoryMap(const MemoryMap&) = delete;
+    MemoryMap& operator=(const MemoryMap&) = delete;
 
-		MemoryMap(MemoryMap&&) noexcept = default;
-		MemoryMap& operator=(MemoryMap&&) noexcept = default;
+    MemoryMap(MemoryMap&&) noexcept = default;
+    MemoryMap& operator=(MemoryMap&&) noexcept = default;
 
-		~MemoryMap() {
-			close();
-		}
+    ~MemoryMap()
+    {
+        close();
+    }
 
-		bool open(const std::string &) {
-			return false;
-		}
+    bool open(const std::string&)
+    {
+        return false;
+    }
 
-		void close() {}
+    void close()
+    {
+    }
 
-		char *data() { return _data; }
+    char* data()
+    {
+        return _data;
+    }
 
-		std::size_t size() const { return _size; }
+    std::size_t size() const
+    {
+        return _size;
+    }
 
-	private:
-		char *_data = nullptr;
-		std::size_t _size = 0;
-	};
+private:
+    char*       _data = nullptr;
+    std::size_t _size = 0;
+};
 #endif
 
 using namespace extension_system;
 
 namespace {
-std::string getRealFilename(const std::string &filename) {
-	filesystem::path filen(filename);
+std::string getRealFilename(const std::string& filename)
+{
+    filesystem::path filen(filename);
 
-	if (!filesystem::exists(filen)) { // check if the file exists
-		if(filesystem::exists(filesystem::path(filename + DynamicLibrary::fileExtension()))) {
-			filen = filename + DynamicLibrary::fileExtension();
-		} else {
-			return "";
-		}
-	}
+    if (!filesystem::exists(filen)) { // check if the file exists
+        if (filesystem::exists(filesystem::path(filename + DynamicLibrary::fileExtension()))) {
+            filen = filename + DynamicLibrary::fileExtension();
+        } else {
+            return "";
+        }
+    }
 
-	return canonical(filen).generic_string();
+    return canonical(filen).generic_string();
 }
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
-	using string_search = boost::algorithm::boyer_moore<const char*>;
+using string_search = boost::algorithm::boyer_moore<const char*>;
 #else
-	class string_search {
-	public:
-		string_search(const char *pattern_first, const char *pattern_last)
-			: pattern_first_(pattern_first), pattern_last_(pattern_last) {}
+class string_search
+{
+public:
+    string_search(const char* pattern_first, const char* pattern_last)
+        : pattern_first_(pattern_first)
+        , pattern_last_(pattern_last)
+    {
+    }
 
-		const char *operator()(const char *first, const char *last) const {
-			// HINT: memmem is much slower than std::search
-			return std::search(first, last, pattern_first_, pattern_last_);
-		}
+    const char* operator()(const char* first, const char* last) const
+    {
+        // HINT: memmem is much slower than std::search
+        return std::search(first, last, pattern_first_, pattern_last_);
+    }
 
-	private:
-		const char *pattern_first_;
-		const char *pattern_last_;
-	};
+private:
+    const char* pattern_first_;
+    const char* pattern_last_;
+};
 #endif
 
 // boost broke compatibility
 // https://svn.boost.org/trac/boost/ticket/12552
 template <typename corpusIter>
-corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter> &p) {
-	return p.first;
+corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p)
+{
+    return p.first;
 }
 template <typename corpusIter>
-corpusIter get_first_from_pair(corpusIter p) {
-	return p;
+corpusIter get_first_from_pair(corpusIter p)
+{
+    return p;
 }
 
-}  // namespace
+} // namespace
 
 ExtensionSystem::ExtensionSystem()
-	: _message_handler([](const std::string &msg) { std::cerr << "ExtensionSystem::" << msg << std::endl;}), _extension_system_alive(std::make_shared<bool>(true)) {}
-
-bool ExtensionSystem::addDynamicLibrary(const std::string &filename) {
-	std::unique_lock<std::mutex> lock(_mutex);
-	std::vector<char> buffer;
-	return _addDynamicLibrary(filename, buffer);
+    : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
+    , _extension_system_alive(std::make_shared<bool>(true))
+{
 }
 
-bool ExtensionSystem::_addDynamicLibrary(const std::string &filename, std::vector<char> &buffer) {
-	std::string filePath = getRealFilename(filename);
+bool ExtensionSystem::addDynamicLibrary(const std::string& filename)
+{
+    std::unique_lock<std::mutex> lock(_mutex);
+    std::vector<char>            buffer;
+    return _addDynamicLibrary(filename, buffer);
+}
 
-	if(filePath.empty()) {
-		_message_handler("addDynamicLibrary: neither " + filename + " nor " + filename + DynamicLibrary::fileExtension() + " exist.");
-		return false;
-	}
+bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer)
+{
+    std::string filePath = getRealFilename(filename);
 
-	if(filesystem::is_directory(filePath)) {
-		_message_handler("addDynamicLibrary: doesn't support adding directories directory=" + filename);
-		return false;
-	}
+    if (filePath.empty()) {
+        _message_handler("addDynamicLibrary: neither " + filename + " nor " + filename + DynamicLibrary::fileExtension() + " exist.");
+        return false;
+    }
 
-	auto already_loaded = _known_extensions.find(filePath);
+    if (filesystem::is_directory(filePath)) {
+        _message_handler("addDynamicLibrary: doesn't support adding directories directory=" + filename);
+        return false;
+    }
 
-	// don't reload library, if there are already references to one contained extension
-	if( already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired() ) {
-		return false;
-	}
+    auto already_loaded = _known_extensions.find(filePath);
 
-	std::size_t file_length = 0;
-	const char * file_content = nullptr;
+    // don't reload library, if there are already references to one contained extension
+    if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired()) {
+        return false;
+    }
 
-	std::ifstream file;
-	MemoryMap memoryMap;
+    std::size_t file_length  = 0;
+    const char* file_content = nullptr;
 
-	if(memoryMap.open(filePath)) {
-		file_length = memoryMap.size();
-		file_content = memoryMap.data();
-	} else {
-		file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
+    std::ifstream file;
+    MemoryMap     memoryMap;
 
-		if(!file) {
-			_message_handler("couldn't open file");
-			return false;
-		}
+    if (memoryMap.open(filePath)) {
+        file_length  = memoryMap.size();
+        file_content = memoryMap.data();
+    } else {
+        file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
 
-		file_length = static_cast<std::size_t>(file.tellg());
+        if (!file) {
+            _message_handler("couldn't open file");
+            return false;
+        }
 
-		if(file_length <= 0) {
-			_message_handler("invalid file size");
-			return false;
-		}
+        file_length = static_cast<std::size_t>(file.tellg());
 
-		file.seekg(0, std::ios::beg);
+        if (file_length <= 0) {
+            _message_handler("invalid file size");
+            return false;
+        }
 
-		if(buffer.size() < static_cast<unsigned int>(file_length)) {
-			buffer.resize(static_cast<unsigned int>(file_length));
-		}
+        file.seekg(0, std::ios::beg);
 
-		file_content = buffer.data();
+        if (buffer.size() < static_cast<unsigned int>(file_length)) {
+            buffer.resize(static_cast<unsigned int>(file_length));
+        }
 
-		file.read(buffer.data(), static_cast<std::streamsize>(file_length));
-		file.close();
-	}
+        file_content = buffer.data();
 
-	const char *file_end = file_content+file_length;
+        file.read(buffer.data(), static_cast<std::streamsize>(file_length));
+        file.close();
+    }
 
-	const std::string start_string = desc_start;
-	string_search search_start(start_string.c_str(), start_string.c_str()+start_string.length());
+    const char* file_end = file_content + file_length;
 
-	const char *found = get_first_from_pair(search_start(file_content, file_end));
+    const std::string start_string = desc_start;
+    string_search     search_start(start_string.c_str(), start_string.c_str() + start_string.length());
 
-	if(found == file_end) { // no tag found, skip file
-		if(_check_for_upx_compression) {
-			string_search search_upx(upx_string.c_str(), upx_string.c_str()+upx_string.length());
-			string_search search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(), upx_exclamation_mark_string.c_str()+upx_exclamation_mark_string.length());
-			// check only for upx if the file didn't contain any tags at all
-			const char *found_upx_exclamation_mark = get_first_from_pair(search_upx_exclamation_mark(file_content, file_end));
-			const char *found_upx = get_first_from_pair(search_upx(file_content, file_end));
+    const char* found = get_first_from_pair(search_start(file_content, file_end));
 
-			if(found_upx != file_end &&
-					found_upx_exclamation_mark != file_end &&
-					found_upx < found_upx_exclamation_mark ) {
-				_message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename + ", it seems the file is compressed using upx. ");
-			}
-		}
-		return false;
-	}
+    if (found == file_end) { // no tag found, skip file
+        if (_check_for_upx_compression) {
+            string_search search_upx(upx_string.c_str(), upx_string.c_str() + upx_string.length());
+            string_search search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(),
+                                                      upx_exclamation_mark_string.c_str() + upx_exclamation_mark_string.length());
+            // check only for upx if the file didn't contain any tags at all
+            const char* found_upx_exclamation_mark = get_first_from_pair(search_upx_exclamation_mark(file_content, file_end));
+            const char* found_upx                  = get_first_from_pair(search_upx(file_content, file_end));
 
-	const std::string end_string = desc_end;
-	string_search search_end(end_string.c_str(), end_string.c_str()+end_string.length());
+            if (found_upx != file_end && found_upx_exclamation_mark != file_end && found_upx < found_upx_exclamation_mark) {
+                _message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename
+                                 + ", it seems the file is compressed using upx. ");
+            }
+        }
+        return false;
+    }
 
-	std::vector<std::unordered_map<std::string, std::string> > data;
+    const std::string end_string = desc_end;
+    string_search     search_end(end_string.c_str(), end_string.c_str() + end_string.length());
 
-	while(found != file_end) {
-		const char*start = found;
+    std::vector<std::unordered_map<std::string, std::string>> data;
 
-		// search the end tag
-		found = get_first_from_pair(search_end(found+1, file_end));
-		const char *end = found;
+    while (found != file_end) {
+        const char* start = found;
 
-		if(end == file_end) { // end tag not found
-			_message_handler("addDynamicLibrary: filename=" + filename + " end tag was missing");
-			break;
-		}
+        // search the end tag
+        found           = get_first_from_pair(search_end(found + 1, file_end));
+        const char* end = found;
 
-		// search the next start tag and check if it is interleaved with current section
-		found = get_first_from_pair(search_start(start+1, file_end));
+        if (end == file_end) { // end tag not found
+            _message_handler("addDynamicLibrary: filename=" + filename + " end tag was missing");
+            break;
+        }
 
-		if(found < end ) {
-			_message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
-			continue;
-		}
+        // search the next start tag and check if it is interleaved with current section
+        found = get_first_from_pair(search_start(start + 1, file_end));
 
-		const std::string raw = std::string(start, static_cast<std::size_t>(end-start-1));
+        if (found < end) {
+            _message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
+            continue;
+        }
 
-		bool failed = false;
-		std::unordered_map<std::string, std::string> result;
-		std::string delimiter;
-		delimiter += '\0';
-		split(raw, delimiter, [&](const std::string &iter) {
-			std::size_t pos = iter.find('=');
-			if(pos == std::string::npos) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter +"). Ignore entry."); //NOLINT
-				failed = true;
-				return false;
-			}
-			const auto key = iter.substr(0, pos);
-			const auto value = iter.substr(pos+1);
-			if(result.find(key) != result.end()) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found. Ignore entry"); //NOLINT
-				failed = true;
-				return false;
-			}
-			result[key] = value;
-			return true;
-		});
+        const std::string raw = std::string(start, static_cast<std::size_t>(end - start - 1));
 
-		result["library_filename"] = filePath;
+        bool failed = false;
+        std::unordered_map<std::string, std::string> result;
+        std::string delimiter;
+        delimiter += '\0';
+        split(raw, delimiter, [&](const std::string& iter) {
+            std::size_t pos = iter.find('=');
+            if (pos == std::string::npos) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter + "). Ignore entry."); // NOLINT
+                failed = true;
+                return false;
+            }
+            const auto key   = iter.substr(0, pos);
+            const auto value = iter.substr(pos + 1);
+            if (result.find(key) != result.end()) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found. Ignore entry"); // NOLINT
+                failed = true;
+                return false;
+            }
+            result[key] = value;
+            return true;
+        });
 
-		if(failed) {
-			// we already printed an error
-		} else if(!result.empty()) {
-			data.push_back(result);
-		} else {
-			_message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
-		}
+        result["library_filename"] = filePath;
 
-		found = get_first_from_pair(search_start(end, file_end));
-	}
+        if (failed) {
+            // we already printed an error
+        } else if (!result.empty()) {
+            data.push_back(result);
+        } else {
+            _message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
+        }
 
-	std::vector<ExtensionDescription> extension_list;
-	for(const auto &iter : data) {
-		ExtensionDescription desc(iter);
-		if(		!_verify_compiler  ||
-				(desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
+        found = get_first_from_pair(search_start(end, file_end));
+    }
+
+    std::vector<ExtensionDescription> extension_list;
+    for (const auto& iter : data) {
+        ExtensionDescription desc(iter);
+        if (!_verify_compiler
+            || (desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
 #if defined(EXTENSION_SYSTEM_COMPILER_GPLUSPLUS) || defined(EXTENSION_SYSTEM_COMPILER_CLANG)
-				&& (desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_CLANG || desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS)
+                && (desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_CLANG || desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS)
 #else
-				&& desc["compiler"] == EXTENSION_SYSTEM_COMPILER
-				&& desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
-				&& desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE
+                && desc["compiler"] == EXTENSION_SYSTEM_COMPILER
+                && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
+                && desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE
 #endif
-				// Should we check the operating system too?
-				)) {
+                // Should we check the operating system too?
+                )) {
 
-			desc._data.erase(desc_start);
+            desc._data.erase(desc_start);
 
-			if(desc.name().empty()) {
-				_message_handler("addDynamicLibrary: filename=" + filename +" name was empty or not set");
-				continue;
-			}
+            if (desc.name().empty()) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " name was empty or not set");
+                continue;
+            }
 
-			if(desc.interface_name().empty()) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " interface_name was empty or not set");
-				continue;
-			}
+            if (desc.interface_name().empty()) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name()
+                                 + " interface_name was empty or not set");
+                continue;
+            }
 
-			if(desc.entry_point().empty()) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " entry_point was empty or not set");
-				continue;
-			}
+            if (desc.entry_point().empty()) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " entry_point was empty or not set");
+                continue;
+            }
 
-			if(desc.version() == 0) {
-				_message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + ": version number was invalid or 0");
-				continue;
-			}
+            if (desc.version() == 0) {
+                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + ": version number was invalid or 0");
+                continue;
+            }
 
-			extension_list.push_back(desc);
-		} else {
-			_message_handler("addDynamicLibrary: Ignore file "+
-							filename + ". Compilation options didn't match or were invalid " +
-							"(version=" + desc[desc_start] +
-							" compiler=" + desc["compiler"] +
-							" compiler_version=" + desc["compiler_version"] +
-							" build_type=" + desc["build_type"] +
-							" expected " +
-							" version=" +EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION) +
-							" compiler=" + EXTENSION_SYSTEM_COMPILER +
-							" compiler_version=" + EXTENSION_SYSTEM_COMPILER_VERSION_STR +
-							" build_type=" + EXTENSION_SYSTEM_BUILD_TYPE +
-							")");
-		}
-	}
+            extension_list.push_back(desc);
+        } else {
+            // clang-format off
+            _message_handler("addDynamicLibrary: Ignore file " + filename + ". Compilation options didn't match or were invalid ("
+                             + "version="          + desc[desc_start]
+                             + " compiler="         + desc["compiler"]
+                             + " compiler_version=" + desc["compiler_version"]
+                             + " build_type="       + desc["build_type"]
+                             + " expected version=" EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
+                             " compiler="           EXTENSION_SYSTEM_COMPILER
+                             " compiler_version="   EXTENSION_SYSTEM_COMPILER_VERSION_STR
+                             " build_type="         EXTENSION_SYSTEM_BUILD_TYPE
+                             ")");
+            // clang-format on
+        }
+    }
 
-	if(extension_list.empty()) {
-		// still possible if the file has an invalid start tag
-		return false;
-	}
+    if (extension_list.empty()) {
+        // still possible if the file has an invalid start tag
+        return false;
+    }
 
-	// The handling of extensions with same name and version number is currently broken
-	_known_extensions[filePath] = LibraryInfo(extension_list);
-	return true;
+    // The handling of extensions with same name and version number is currently broken
+    _known_extensions[filePath] = LibraryInfo(extension_list);
+    return true;
 }
 
-void ExtensionSystem::removeDynamicLibrary(const std::string &filename)
+void ExtensionSystem::removeDynamicLibrary(const std::string& filename)
 {
-	std::unique_lock<std::mutex> lock(_mutex);
-	auto real_filename = getRealFilename(filename);
-	auto iter = _known_extensions.find(real_filename);
-	if(iter != _known_extensions.end()) {
-		_known_extensions.erase(iter);
-	}
+    std::unique_lock<std::mutex> lock(_mutex);
+    auto                         real_filename = getRealFilename(filename);
+    auto                         iter          = _known_extensions.find(real_filename);
+    if (iter != _known_extensions.end()) {
+        _known_extensions.erase(iter);
+    }
 }
 
-void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
-	std::vector<char> buffer;
-	std::unique_lock<std::mutex> lock(_mutex);
-	filesystem::forEachFileInDirectory(path, [this, &buffer](const filesystem::path &p){
-		if (p.extension().string() == DynamicLibrary::fileExtension()) {
-			_addDynamicLibrary(p.string(), buffer);
-		}
-	}, recursive);
-}
-
-void ExtensionSystem::searchDirectory(const std::string& path, const std::string &required_prefix, bool recursive) {
-	std::vector<char> buffer;
-	std::unique_lock<std::mutex> lock(_mutex);
-	const std::size_t required_prefix_length = required_prefix.length();
-	filesystem::forEachFileInDirectory(path, [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path &p){
-		if (p.extension().string() == DynamicLibrary::fileExtension() &&
-				p.filename().string().compare(0, required_prefix_length, required_prefix)==0) {
-			_addDynamicLibrary(p.string(), buffer);
-		}
-	}, recursive);
-}
-
-std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string> > &metaDataFilter) const
+void ExtensionSystem::searchDirectory(const std::string& path, bool recursive)
 {
-	std::unordered_map<std::string, std::unordered_set<std::string> > filterMap;
-
-	for(const auto &f : metaDataFilter ) {
-		filterMap[f.first].insert(f.second);
-	}
-
-	std::unique_lock<std::mutex> lock(_mutex);
-	std::vector<ExtensionDescription> result;
-
-	for(const auto &i : _known_extensions) {
-		for(const auto &j : i.second.extensions) {
-			// check all filters
-			bool addExtension = true;
-
-			for(const auto &filter : filterMap ) {
-				auto extended = j._data;
-
-				// search extended data if filtered metadata is present
-				auto extIter = extended.find(filter.first);
-
-				if( extIter == extended.end() ) {
-					addExtension = false;
-					break;
-				}
-
-				// check if metadata value is within filter values
-				if( filter.second.find(extIter->second) == filter.second.end() ) {
-					addExtension = false;
-					break;
-				}
-			}
-			if( addExtension ) {
-				result.push_back(j);
-			}
-		}
-	}
-
-	return result;
+    std::vector<char>            buffer;
+    std::unique_lock<std::mutex> lock(_mutex);
+    filesystem::forEachFileInDirectory(path,
+                                       [this, &buffer](const filesystem::path& p) {
+                                           if (p.extension().string() == DynamicLibrary::fileExtension()) {
+                                               _addDynamicLibrary(p.string(), buffer);
+                                           }
+                                       },
+                                       recursive);
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
-	std::unique_lock<std::mutex> lock(_mutex);
-	std::vector<ExtensionDescription> list;
-
-	for(const auto &i : _known_extensions) {
-		for(const auto &j : i.second.extensions) {
-			list.push_back(j);
-		}
-	}
-
-	return list;
+void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive)
+{
+    std::vector<char>            buffer;
+    std::unique_lock<std::mutex> lock(_mutex);
+    const std::size_t            required_prefix_length = required_prefix.length();
+    filesystem::forEachFileInDirectory(path,
+                                       [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path& p) {
+                                           if (p.extension().string() == DynamicLibrary::fileExtension()
+                                               && p.filename().string().compare(0, required_prefix_length, required_prefix) == 0) {
+                                               _addDynamicLibrary(p.string(), buffer);
+                                           }
+                                       },
+                                       recursive);
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
-	for(const auto &i : _known_extensions) {
-		for(const auto &j : i.second.extensions) {
-			if(j.interface_name() == interface_name && j.name() == name && j.version() == version) {
-				return j;
-			}
-		}
-	}
+std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const
+{
+    std::unordered_map<std::string, std::unordered_set<std::string>> filterMap;
 
-	return ExtensionDescription();
+    for (const auto& f : metaDataFilter) {
+        filterMap[f.first].insert(f.second);
+    }
+
+    std::unique_lock<std::mutex>      lock(_mutex);
+    std::vector<ExtensionDescription> result;
+
+    for (const auto& i : _known_extensions) {
+        for (const auto& j : i.second.extensions) {
+            // check all filters
+            bool addExtension = true;
+
+            for (const auto& filter : filterMap) {
+                auto extended = j._data;
+
+                // search extended data if filtered metadata is present
+                auto extIter = extended.find(filter.first);
+
+                if (extIter == extended.end()) {
+                    addExtension = false;
+                    break;
+                }
+
+                // check if metadata value is within filter values
+                if (filter.second.find(extIter->second) == filter.second.end()) {
+                    addExtension = false;
+                    break;
+                }
+            }
+            if (addExtension) {
+                result.push_back(j);
+            }
+        }
+    }
+
+    return result;
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const {
-	unsigned int highest_version = 0;
-	const ExtensionDescription *desc = nullptr;
+std::vector<ExtensionDescription> ExtensionSystem::extensions() const
+{
+    std::unique_lock<std::mutex>      lock(_mutex);
+    std::vector<ExtensionDescription> list;
 
-	for(const auto &i : _known_extensions) {
-		for(const auto &j : i.second.extensions) {
-			if(j.interface_name() == interface_name && j.name() == name && j.version() > highest_version ) {
-				highest_version = j.version();
-				desc = &j;
-			}
-		}
-	}
+    for (const auto& i : _known_extensions) {
+        for (const auto& j : i.second.extensions) {
+            list.push_back(j);
+        }
+    }
 
-	return desc != nullptr ? *desc : ExtensionDescription();
+    return list;
 }
 
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const
+{
+    for (const auto& i : _known_extensions) {
+        for (const auto& j : i.second.extensions) {
+            if (j.interface_name() == interface_name && j.name() == name && j.version() == version) {
+                return j;
+            }
+        }
+    }
 
-void ExtensionSystem::setVerifyCompiler(bool enable) {
-	_verify_compiler = enable;
+    return ExtensionDescription();
+}
+
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const
+{
+    unsigned int                highest_version = 0;
+    const ExtensionDescription* desc            = nullptr;
+
+    for (const auto& i : _known_extensions) {
+        for (const auto& j : i.second.extensions) {
+            if (j.interface_name() == interface_name && j.name() == name && j.version() > highest_version) {
+                highest_version = j.version();
+                desc            = &j;
+            }
+        }
+    }
+
+    return desc != nullptr ? *desc : ExtensionDescription();
+}
+
+void ExtensionSystem::setVerifyCompiler(bool enable)
+{
+    _verify_compiler = enable;
 }

@@ -1,10 +1,10 @@
 /**
-	@file
-	@copyright
-		Copyright Bernd Amend and Michael Adam 2014-2017
-		Distributed under the Boost Software License, Version 1.0.
-		(See accompanying file LICENSE_1_0.txt or copy at
-		http://www.boost.org/LICENSE_1_0.txt)
+    @file
+    @copyright
+        Copyright Bernd Amend and Michael Adam 2014-2017
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        http://www.boost.org/LICENSE_1_0.txt)
 */
 #pragma once
 
@@ -12,35 +12,37 @@
 
 #define EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
 
-#define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key,value) key "=" value "\0"
+#define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key, value) key "=" value "\0"
+
+// clang-format off
 
 /**
  * You have to pass a fully qualified interface name (_interface).
  * your class should have a virtual destructor
  */
 #define EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, _function_name) \
-	extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *, const char **); \
-	extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *freeExtension, const char **data) { \
-		const char *extension_system_export = \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_START", EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler", EXTENSION_SYSTEM_COMPILER) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler_version", EXTENSION_SYSTEM_COMPILER_VERSION_STR) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("build_type", EXTENSION_SYSTEM_BUILD_TYPE) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("interface_name", EXTENSION_SYSTEM_STR(_interface)) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("name", _name) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("version", EXTENSION_SYSTEM_STR(_version)) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("description", _description) \
-			EXTENSION_SYSTEM_DESCRIPTION_ENTRY("entry_point", EXTENSION_SYSTEM_STR(_function_name)) \
-			_user_defined \
-			"EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_END"; \
-			if( freeExtension != nullptr ) {\
-				delete freeExtension;\
-				return nullptr;\
-			} \
-		if(data) \
-			*data = extension_system_export; \
-		return new _classname;\
-	}
+    extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *, const char **); \
+    extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *freeExtension, const char **data) { \
+        const char *extension_system_export = \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_START", EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler", EXTENSION_SYSTEM_COMPILER) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler_version", EXTENSION_SYSTEM_COMPILER_VERSION_STR) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("build_type", EXTENSION_SYSTEM_BUILD_TYPE) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("interface_name", EXTENSION_SYSTEM_STR(_interface)) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("name", _name) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("version", EXTENSION_SYSTEM_STR(_version)) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("description", _description) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("entry_point", EXTENSION_SYSTEM_STR(_function_name)) \
+            _user_defined \
+            "EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_END"; \
+            if( freeExtension != nullptr ) {\
+                delete freeExtension;\
+                return nullptr;\
+            } \
+        if(data) \
+            *data = extension_system_export; \
+        return new _classname;\
+    }
 
 /**
  * Helper macro to make extension export more readable
@@ -58,14 +60,18 @@
  *        If no user defined metadata is necessary, use EXTENSION_SYSTEM_NO_USER_DATA.
  */
 #define EXTENSION_SYSTEM_EXTENSION(_interface, _classname, _name, _version, _description, _user_defined) \
-	EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, \
-		EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(extension_system_entry_point_, __LINE__), _), __COUNTER__))
+    EXTENSION_SYSTEM_EXTENSION_EXT(_interface, _classname, _name, _version, _description, _user_defined, \
+        EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(EXTENSION_SYSTEM_CONCAT(extension_system_entry_point_, __LINE__), _), __COUNTER__))
+
+// clang-format on
 
 // Interface helper
 namespace extension_system {
-	template<typename T> struct InterfaceName {
-		// You have to call EXTENSION_SYSTEM_INTERFACE(T) for your interface
-	};
+template <typename T>
+struct InterfaceName
+{
+    // You have to call EXTENSION_SYSTEM_INTERFACE(T) for your interface
+};
 }
 
 /**
@@ -73,4 +79,14 @@ namespace extension_system {
  * In order to create extensions implementing a certain interface, this interface has to be exportet using EXTENSION_SYSTEM_INTERFACE macro
  * You have to call this macro with the fully qualified typename in the root namespace!
  */
-#define EXTENSION_SYSTEM_INTERFACE(T) namespace extension_system { template<> struct InterfaceName<T> { inline constexpr static const char *getString() { return #T ; } };}
+#define EXTENSION_SYSTEM_INTERFACE(T)                   \
+    namespace extension_system {                        \
+    template <>                                         \
+    struct InterfaceName<T>                             \
+    {                                                   \
+        inline constexpr static const char* getString() \
+        {                                               \
+            return #T;                                  \
+        }                                               \
+    };                                                  \
+    }
