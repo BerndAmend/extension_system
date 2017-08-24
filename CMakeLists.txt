@@ -118,6 +118,7 @@ add_library(extension_system STATIC
 target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
+set_target_properties(extension_system PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
     # Test library
