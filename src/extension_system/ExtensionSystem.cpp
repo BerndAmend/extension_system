@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <extension_system/filesystem.hpp>
 #include <extension_system/string.hpp>
-#include <fstream>
 #include <iostream>
 #include <unordered_set>
 
@@ -19,124 +18,11 @@
 #include <boost/algorithm/searching/boyer_moore.hpp>
 #endif
 
-#ifdef EXTENSION_SYSTEM_OS_LINUX
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-class MemoryMap
-{
-public:
-    MemoryMap() = default;
-
-    MemoryMap(const MemoryMap&) = delete;
-    MemoryMap& operator=(const MemoryMap&) = delete;
-
-    MemoryMap(MemoryMap&&) noexcept = default;
-    MemoryMap& operator=(MemoryMap&&) noexcept = default;
-
-    ~MemoryMap()
-    {
-        close();
-    }
-
-    bool open(const std::string& filename)
-    {
-        // clang-format off
-        struct stat sb {};
-        // clang-format on
-        int fd = ::open(filename.c_str(), O_RDONLY);
-
-        if (fd == -1) {
-            return false;
-        }
-
-        fstat(fd, &sb);
-
-        _size = static_cast<std::size_t>(sb.st_size);
-
-        int flags = MAP_FILE | MAP_PRIVATE;
-
-#ifdef MAP_POPULATE
-        flags |= MAP_POPULATE;
-#endif
-
-        auto addr = mmap(nullptr, _size, PROT_READ, flags, fd, 0);
-
-        ::close(fd);
-
-        if (addr == MAP_FAILED) { // NOLINT
-            return false;
-        }
-
-        _data = reinterpret_cast<char*>(addr); // NOLINT
-        return true;
-    }
-
-    void close()
-    {
-        if (_data != nullptr) {
-            munmap(_data, _size);
-            _data = nullptr;
-            _size = 0;
-        }
-    }
-
-    char* data()
-    {
-        return _data;
-    }
-
-    std::size_t size() const
-    {
-        return _size;
-    }
-
-private:
-    char*       _data = nullptr;
-    std::size_t _size = 0;
-};
+#ifdef EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
 #else
-class MemoryMap
-{
-public:
-    MemoryMap() = default;
-
-    MemoryMap(const MemoryMap&) = delete;
-    MemoryMap& operator=(const MemoryMap&) = delete;
-
-    MemoryMap(MemoryMap&&) noexcept = default;
-    MemoryMap& operator=(MemoryMap&&) noexcept = default;
-
-    ~MemoryMap()
-    {
-        close();
-    }
-
-    bool open(const std::string&)
-    {
-        return false;
-    }
-
-    void close()
-    {
-    }
-
-    char* data()
-    {
-        return _data;
-    }
-
-    std::size_t size() const
-    {
-        return _size;
-    }
-
-private:
-    char*       _data = nullptr;
-    std::size_t _size = 0;
-};
+#include <fstream>
 #endif
 
 using namespace extension_system;
@@ -233,13 +119,32 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     std::size_t file_length  = 0;
     const char* file_content = nullptr;
 
-    std::ifstream file;
-    MemoryMap     memoryMap;
+#ifdef EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS
+    (void)buffer;
+    const boost::interprocess::mode_t mode = boost::interprocess::read_only;
+    boost::interprocess::file_mapping fm;
 
-    if (memoryMap.open(filePath)) {
-        file_length  = memoryMap.size();
-        file_content = memoryMap.data();
-    } else {
+    boost::interprocess::mapped_region file;
+
+    try {
+        fm = boost::interprocess::file_mapping(filePath.c_str(), mode);
+    } catch (const boost::interprocess::interprocess_exception& e) {
+        _message_handler(std::string("file_mapping failed ") + e.what());
+        return false;
+    }
+
+    try {
+        file = boost::interprocess::mapped_region(fm, mode, 0, 0);
+    } catch (const boost::interprocess::interprocess_exception& e) {
+        _message_handler(std::string("mapped_region failed ") + e.what());
+        return false;
+    }
+
+    file_length  = file.get_size();
+    file_content = reinterpret_cast<const char*>(file.get_address());
+#else
+    {
+        std::ifstream file;
         file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
 
         if (!file) {
@@ -263,8 +168,8 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
         file_content = buffer.data();
 
         file.read(buffer.data(), static_cast<std::streamsize>(file_length));
-        file.close();
     }
+#endif
 
     const char* file_end = file_content + file_length;
 

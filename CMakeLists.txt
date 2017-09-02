@@ -98,6 +98,13 @@ if(EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
     add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
 endif()
 
+CHECK_INCLUDE_FILE_CXX("boost/interprocess/file_mapping.hpp" EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+
+if(EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+    message(STATUS "Use Boost.Interprocess to to speed-up searching for extensions by using memory mapped files")
+    add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+endif()
+
 include_directories(src)
 
 # library
