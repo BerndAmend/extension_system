@@ -51,7 +51,7 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
 bool extension_system::filesystem::exists(const extension_system::filesystem::path& p)
 {
     const std::string str = p.string();
-    return access(str.c_str(), R_OK) == 0;
+    return access(str.c_str(), F_OK) == 0;
 }
 
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p)
