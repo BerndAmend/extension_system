@@ -99,8 +99,12 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
                       }
 
                       if (ep->d_type == DT_REG || ep->d_type == DT_LNK) {
-                          func(full_name);
-                      } else if (ep->d_type == DT_DIR && recursive) {
+                          if (recursive && is_directory(full_name)) {
+                              handle_dir(full_name);
+                          } else {
+                              func(full_name);
+                          }
+                      } else if (recursive && ep->d_type == DT_DIR) {
                           handle_dir(full_name);
                       }
                   }
