@@ -11,27 +11,29 @@
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 using namespace extension_system::filesystem;
 
+#if EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
 path extension_system::filesystem::canonical(const path& p)
 {
     return p.filename();
 }
+#endif
 
-void extension_system::filesystem::forEachFileInDirectory(const path& p, const std::function<void(const path& p)>& func, bool recursive)
+void extension_system::filesystem::forEachFileInDirectory(const path& root, const std::function<void(const path& p)>& func, bool recursive)
 {
-    path someDir(p);
-
-    if (!exists(someDir) && !is_directory(someDir)) {
+    if (!exists(root) && !is_directory(root)) {
         return;
     }
 
+    const auto options = directory_options::skip_permission_denied | directory_options::follow_directory_symlink;
+
     if (recursive) {
-        directory_iterator end_iter;
-        for (directory_iterator dir_iter(someDir); dir_iter != end_iter; ++dir_iter) {
+        recursive_directory_iterator end_iter;
+        for (recursive_directory_iterator dir_iter(root, options); dir_iter != end_iter; ++dir_iter) {
             func(dir_iter->path());
         }
     } else {
-        recursive_directory_iterator end_iter;
-        for (recursive_directory_iterator dir_iter(someDir); dir_iter != end_iter; ++dir_iter) {
+        directory_iterator end_iter;
+        for (directory_iterator dir_iter(root, options); dir_iter != end_iter; ++dir_iter) {
             func(dir_iter->path());
         }
     }

@@ -17,14 +17,26 @@
 #include <extension_system/string.hpp>
 
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+// clang-format off
+#if __has_include(<filesystem>)
 #include <filesystem>
+#else
+#include <experimental/filesystem>
+#endif
 
 namespace extension_system {
 namespace filesystem {
+#if EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
 using namespace std::tr2::sys; // >=VS2012
-
 path canonical(const path& p);
-void forEachFileInDirectory(const path& p, const std::function<void(const path& p)>& func, bool recursive);
+#elif __has_include(<experimental/filesystem>)
+using namespace std::experimental::filesystem;
+#else
+using namespace std::filesystem;
+#endif
+// clang-format on
+
+void forEachFileInDirectory(const path& root, const std::function<void(const path& p)>& func, bool recursive);
 }
 }
 #else

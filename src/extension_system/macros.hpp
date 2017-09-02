@@ -118,6 +118,16 @@
         #error Unsupported compiler, please use a g++ >= 4.8
     #endif
 
+    // g++ >=7.1 has experimental filesystem support
+    // sadly the implementation is by far slower than our simple posix wrapper
+    // I verified that the function forEachFileInDirectory behaves identical
+    // for both implementations (at least on linux)
+    // in order to work the linker option -lstdc++fs is required
+    // TODO: investigate why std::experimental is so slow
+    //#if EXTENSION_SYSTEM_COMPILER_VERSION >= 701
+    //    #define EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+    //#endif
+
 #elif defined(EXTENSION_SYSTEM_COMPILER_MSVC)
     #if EXTENSION_SYSTEM_COMPILER_VERSION < 1700
         #error Unsupported compiler, please use >=VC12
@@ -125,3 +135,4 @@
 
     #define EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 #endif
+// clang-format off
