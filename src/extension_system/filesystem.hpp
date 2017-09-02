@@ -50,6 +50,10 @@ public:
     {
         *this = p._pathname;
     }
+    path(const char* p)
+    {
+        *this = std::string(p);
+    }
     path(const std::string& p)
     {
         *this = p;
