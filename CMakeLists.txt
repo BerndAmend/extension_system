@@ -13,27 +13,27 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_definitions(-pedantic -Wnon-virtual-dtor -Woverloaded-virtual)
+        add_compile_options(-pedantic -Wnon-virtual-dtor -Woverloaded-virtual)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_definitions(-Wno-c++98-compat -Wno-c++98-compat-pedantic
+        add_compile_options(-Wno-c++98-compat -Wno-c++98-compat-pedantic
                         -Wno-global-constructors -Wno-exit-time-destructors
                         -Wno-documentation
                         -Wno-padded
                         -Wno-weak-vtables
                         -Wno-attributes -Weverything)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-        add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
+        add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-        add_definitions(-DNOMINMAX) # force windows.h not to define min and max
+        add_compile_options(-D_CRT_SECURE_NO_WARNINGS)
+        add_compile_options(-DNOMINMAX) # force windows.h not to define min and max
 
         # disable some annoying compiler warnings
-        add_definitions(/wd4275) # disable warning C4275: non dll-interface x used as base for dll-interface y
-        add_definitions(/wd4251) # disable warning C4251: x needs to have dll-interface to be used by clients of y
-        add_definitions(/wd4068) # disable warning C4068: unknown pragma
+        add_compile_options(/wd4275) # disable warning C4275: non dll-interface x used as base for dll-interface y
+        add_compile_options(/wd4251) # disable warning C4251: x needs to have dll-interface to be used by clients of y
+        add_compile_options(/wd4068) # disable warning C4068: unknown pragma
 
         # enable additional compiler warnings
-        add_definitions(/w14062 /w14263 /w14264 /w14289 /w14623 /w14706)
+        add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14623 /w14706)
     endif()
 
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -41,8 +41,8 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     endif()
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_definitions(-foptimize-sibling-calls)
-        add_definitions(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
+        add_compile_options(-foptimize-sibling-calls)
+        add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
             -Wno-conversion-null -Werror=return-type)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D_FORTIFY_SOURCE=2")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
