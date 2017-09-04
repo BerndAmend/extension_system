@@ -11,7 +11,7 @@
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 using namespace extension_system::filesystem;
 
-#if EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
+#if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
 path extension_system::filesystem::canonical(const path& p)
 {
     return p.filename();
@@ -24,7 +24,11 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
         return;
     }
 
-    const auto options = directory_options::skip_permission_denied | directory_options::follow_directory_symlink;
+    auto options = directory_options::follow_directory_symlink;
+
+#if !defined(EXTENSION_SYSTEM_COMPILER_MSVC)
+    options |= directory_options::skip_permission_denied;
+#endif
 
     if (recursive) {
         recursive_directory_iterator end_iter;
@@ -33,7 +37,7 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
         }
     } else {
         directory_iterator end_iter;
-        for (directory_iterator dir_iter(root, options); dir_iter != end_iter; ++dir_iter) {
+        for (directory_iterator dir_iter(root); dir_iter != end_iter; ++dir_iter) {
             func(dir_iter->path());
         }
     }
