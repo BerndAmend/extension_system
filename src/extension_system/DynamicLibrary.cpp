@@ -9,8 +9,6 @@
 #include <extension_system/DynamicLibrary.hpp>
 #include <extension_system/macros.hpp>
 
-using extension_system::DynamicLibrary;
-
 #ifdef EXTENSION_SYSTEM_OS_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #define NO_STRICT
@@ -21,6 +19,8 @@ using extension_system::DynamicLibrary;
 #else // posix e.g. linux
 #include <dlfcn.h>
 #endif
+
+using extension_system::DynamicLibrary;
 
 DynamicLibrary::DynamicLibrary(const std::string& filename)
     : _filename(filename)
