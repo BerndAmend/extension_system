@@ -20,6 +20,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
                         -Wno-documentation
                         -Wno-padded
                         -Wno-weak-vtables
+                        -Wno-reserved-id-macro
                         -Wno-attributes -Weverything)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
         add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
@@ -74,30 +75,36 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         #endif
     " EXTENSION_SYSTEM_ANDROID)
 
-    find_program(
-        CLANG_TIDY_EXE
-        NAMES "clang-tidy"
-        DOC "Path to clang-tidy executable"
-        )
-    if(CLANG_TIDY_EXE)
-        message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
-        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}" "-fix" "-checks=*,-cppcoreguidelines-pro-bounds-*,-cppcoreguidelines-pro-type-vararg,-google-build-using-namespace")
+    option(EXTENSION_SYSTEM_ENABLE_CLANG_TIDY "" OFF)
+    if(EXTENSION_SYSTEM_ENABLE_CLANG_TIDY)
+        find_program(
+            CLANG_TIDY_EXE
+            NAMES "clang-tidy"
+            DOC "Path to clang-tidy executable"
+            )
+        if(CLANG_TIDY_EXE)
+            message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
+            set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}" "-fix" "-checks=*,-cppcoreguidelines-pro-bounds-*,-cppcoreguidelines-pro-type-vararg,-google-build-using-namespace")
+        endif()
     endif()
 endif()
 
-include(CheckIncludeFileCXX)
-CHECK_INCLUDE_FILE_CXX("boost/algorithm/searching/boyer_moore.hpp" EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+option(EXTENSION_SYSTEM_DISABLE_BOOST "" OFF)
+if(NOT EXTENSION_SYSTEM_DISABLE_BOOST)
+    include(CheckIncludeFileCXX)
+    CHECK_INCLUDE_FILE_CXX("boost/algorithm/searching/boyer_moore.hpp" EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
 
-if(EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
-    message(STATUS "Use boost/algorithm/searching/boyer_moore.hpp to speed-up searching for extensions")
-    add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
-endif()
+    if(EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+        message(STATUS "Use boost/algorithm/searching/boyer_moore.hpp to speed-up searching for extensions")
+        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
+    endif()
 
-CHECK_INCLUDE_FILE_CXX("boost/interprocess/file_mapping.hpp" EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+    CHECK_INCLUDE_FILE_CXX("boost/interprocess/file_mapping.hpp" EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
 
-if(EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
-    message(STATUS "Use Boost.Interprocess to to speed-up searching for extensions by using memory mapped files")
-    add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+    if(EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+        message(STATUS "Use Boost.Interprocess to to speed-up searching for extensions by using memory mapped files")
+        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+    endif()
 endif()
 
 include_directories(src)
@@ -123,12 +130,18 @@ set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYS
 set_target_properties(extension_system PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
+    enable_testing()
+
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy_test_extension.so
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
     # Test library
     add_library(extension_system_test_lib SHARED test/extension.cpp test/Interfaces.hpp)
 
     # Test program
-    add_executable(extension_system_test test/main.cpp test/Interfaces.hpp)
+    add_executable(extension_system_test test/main.cpp test/Interfaces.hpp test/catch.hpp)
     target_link_libraries(extension_system_test extension_system)
+    add_test(extension_system_test extension_system_test)
 
     # Examples
     ## Example 1
@@ -166,13 +179,11 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
         RUNTIME DESTINATION bin
         PUBLIC_HEADER DESTINATION include/extension_system)
 
-    find_package(Doxygen)
+    find_package(Doxygen QUIET)
     if (DOXYGEN_FOUND)
         add_custom_target (doc
                             COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_SOURCE_DIR}/Doxyfile
                             SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile
                             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-    else()
-        message("Doxygen is needed to build the documentation. Please install it to build the documentation.")
     endif()
 endif()

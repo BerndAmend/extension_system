@@ -45,6 +45,7 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
 
 #else
 
+#include <array>
 #include <climits>
 #include <cstdlib>
 #include <dirent.h>

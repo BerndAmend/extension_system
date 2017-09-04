@@ -12,9 +12,9 @@
 class Ext1 : public IExt1
 {
 public:
-    void test1() override
+    int test1() override
     {
-        std::cout << "Hello from Ext1\n";
+        return 42;
     }
 };
 // clang-format off
@@ -27,9 +27,9 @@ namespace test_namespace {
 class Ext1_1 : public IExt1
 {
 public:
-    void test1() override
+    int test1() override
     {
-        std::cout << "Hello from Ext1_1\n";
+        return 21;
     }
 };
 } // namespace test_namespace
@@ -41,9 +41,9 @@ EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extensio
 class Ext2 : public extension_system::IExt2
 {
 public:
-    void test2() override
+    std::string test2() override
     {
-        std::cout << "Hello from Ext2\n";
+        return "Hello from Ext2";
     }
 };
 // clang-format off

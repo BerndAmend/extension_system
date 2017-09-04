@@ -6,58 +6,125 @@
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
 */
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
+
 #include "Interfaces.hpp"
 #include <extension_system/ExtensionSystem.hpp>
-#include <iostream>
 
 using namespace extension_system;
 
-static std::shared_ptr<IExt1> e1;
-
-int main()
+TEST_CASE("test if the test file can be loaded")
 {
     ExtensionSystem extensionSystem;
+    extensionSystem.setVerifyCompiler(false);
+    extensionSystem.searchDirectory(".", "dummy_test_extension", false);
+    auto e = extensionSystem.extensions();
+    REQUIRE(e.size() == 1);
+    CHECK(e[0].getExtended()["compiler"] == "test");
+    CHECK(e[0].getExtended()["compiler_version"] == "1");
+    CHECK(e[0].name() == "ext_name");
+    CHECK(e[0].interface_name() == "ext_interface");
+    CHECK(e[0].description() == "extension");
+}
 
+TEST_CASE("all expected extensions were found")
+{
+    ExtensionSystem extensionSystem;
+    extensionSystem.searchDirectory(".");
+    auto e = extensionSystem.extensions();
+    CHECK(e.size() == 5);
+
+    for (const auto& i : e) {
+        if (i.name() == "Example2Extension") {
+            CHECK(i.interface_name() == "Interface2");
+            CHECK(i.description() == "Example 2 extension");
+            CHECK(i.version() == 100);
+        } else if (i.name() == "Example1Extension") {
+            CHECK(i.interface_name() == "Interface1");
+            CHECK(i.description() == "Example 1 extension");
+            CHECK(i.version() == 100);
+        } else if (i.name() == "Ext1" && i.version() == 100 || i.version() == 110) {
+            CHECK(i.interface_name() == "IExt1");
+            if (i.version() == 100)
+                CHECK(i.description() == "extension 1 for testing purposes");
+            else
+                CHECK(i.description() == "extension 2 for testing purposes");
+        } else if (i.name() == "Ext2") {
+            CHECK(i.interface_name() == "extension_system::IExt2");
+            CHECK(i.description() == "extension 3 for testing purposes");
+        } else {
+            CHECK(false); // unexpected extension
+        }
+    }
+}
+
+TEST_CASE("all expected extensions with a given interface were found")
+{
+    ExtensionSystem extensionSystem;
+    extensionSystem.searchDirectory(".");
+    auto e = extensionSystem.extensions<IExt1>();
+    CHECK(e.size() == 2);
+
+    for (const auto& i : e) {
+        CHECK(i.interface_name() == "IExt1");
+    }
+}
+
+TEST_CASE("load extension by name")
+{
+    ExtensionSystem extensionSystem;
     extensionSystem.searchDirectory(".");
 
-    for (const auto& i : extensionSystem.extensions()) {
-        std::cout << i.toString() << "\n";
-    }
+    auto e = extensionSystem.createExtension<IExt1>("Ext1");
 
-    std::cout << "\nExtensions with interface IExt1:\n";
-    for (const auto& i : extensionSystem.extensions<IExt1>()) {
-        std::cout << i.toString() << "\n";
-    }
+    REQUIRE(e != nullptr);
 
-    e1      = extensionSystem.createExtension<IExt1>("Ext1");
-    auto e2 = extensionSystem.createExtension<IExt1>("Ext1", 100);
-    auto e3 = extensionSystem.createExtension<IExt2>("Ext2");
+    CHECK(e->test1() == 21);
 
-    if (e1 != nullptr) {
-        e1->test1();
-        auto i = extensionSystem.findDescription(e1);
-        if (i.isValid()) {
-            std::cout << "Description:\n" << i.toString() << "\n";
-        }
-    }
-    if (e2 != nullptr) {
-        e2->test1();
-        auto i = extensionSystem.findDescription(e2);
-        if (i.isValid()) {
-            std::cout << "Description:\n" << i.toString() << "\n";
-        }
-    }
-    if (e3 != nullptr) {
-        e3->test2();
-        auto i = extensionSystem.findDescription(e3);
-        if (i.isValid()) {
-            std::cout << "Description:\n" << i.toString() << "\n";
-        }
-    }
+    auto desc = extensionSystem.findDescription(e);
+    CHECK(desc.isValid());
+    CHECK(desc.version() == 110);
+}
 
-    std::cout << "done\n";
+TEST_CASE("load extension by name and version")
+{
+    ExtensionSystem extensionSystem;
+    extensionSystem.searchDirectory(".");
 
-    std::cout << "filter test\n";
+    auto e = extensionSystem.createExtension<IExt1>("Ext1", 100);
+
+    REQUIRE(e != nullptr);
+
+    CHECK(e->test1() == 42);
+
+    auto desc = extensionSystem.findDescription(e);
+    CHECK(desc.isValid());
+    CHECK(desc.version() == 100);
+}
+
+TEST_CASE("load extension by name 2")
+{
+    ExtensionSystem extensionSystem;
+    extensionSystem.searchDirectory(".");
+
+    auto e = extensionSystem.createExtension<IExt2>("Ext2");
+
+    REQUIRE(e != nullptr);
+
+    CHECK_THAT(e->test2(), Catch::Matchers::Equals("Hello from Ext2"));
+
+    auto desc = extensionSystem.findDescription(e);
+    CHECK(desc.isValid());
+    CHECK(desc.version() == 100);
+}
+
+#if 0
+TEST_CASE("check if filter work as expected")
+{
+    ExtensionSystem extensionSystem;
+    extensionSystem.searchDirectory(".");
+
     auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
     for (const auto& i : filteredExtensions) {
         auto e4 = extensionSystem.createExtension<IExt2>(i);
@@ -68,6 +135,5 @@ int main()
             std::cout << "Wrong interface:\n" << i.toString() << "\n";
         }
     }
-
-    return 0;
 }
+#endif

@@ -9,11 +9,12 @@
 #pragma once
 
 #include <extension_system/Extension.hpp>
+#include <string>
 
 class IExt1
 {
 public:
-    virtual void test1() = 0;
+    virtual int test1() = 0;
     virtual ~IExt1()
     {
     }
@@ -24,7 +25,7 @@ namespace extension_system {
 class IExt2
 {
 public:
-    virtual void test2() = 0;
+    virtual std::string test2() = 0;
     virtual ~IExt2()
     {
     }
