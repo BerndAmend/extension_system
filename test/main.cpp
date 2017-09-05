@@ -52,7 +52,7 @@ TEST_CASE("all expected extensions were found")
             CHECK(i.interface_name() == "Interface1");
             CHECK(i.description() == "Example 1 extension");
             CHECK(i.version() == 100);
-        } else if (i.name() == "Ext1" && i.version() == 100 || i.version() == 110) {
+        } else if (i.name() == "Ext1" && (i.version() == 100 || i.version() == 110)) {
             CHECK(i.interface_name() == "IExt1");
             if (i.version() == 100)
                 CHECK(i.description() == "extension 1 for testing purposes");
