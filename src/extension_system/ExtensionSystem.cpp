@@ -97,6 +97,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename)
 
 bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer)
 {
+    debugMessage("Check file " + filename);
     const std::string filePath = getRealFilename(filename);
 
     if (filePath.empty()) {
@@ -446,7 +447,19 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
     return desc != nullptr ? *desc : ExtensionDescription();
 }
 
+void ExtensionSystem::debugMessage(const std::string& msg)
+{
+    if (_debug_output) {
+        _message_handler(msg);
+    }
+}
+
 void ExtensionSystem::setVerifyCompiler(bool enable)
 {
     _verify_compiler = enable;
+}
+
+void ExtensionSystem::setEnableDebugOutput(bool enable)
+{
+    _debug_output = enable;
 }

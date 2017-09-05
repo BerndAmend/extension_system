@@ -326,6 +326,8 @@ public:
      */
     void setVerifyCompiler(bool enable);
 
+    void setEnableDebugOutput(bool enable);
+
     /**
      * @brief setCheckForUPXCompression
      * The check is costly and not required most of the time
@@ -421,7 +423,10 @@ private:
         std::vector<ExtensionDescription> extensions;
     };
 
+    void debugMessage(const std::string& msg);
+
     bool _verify_compiler           = true;
+    bool _debug_output              = false;
     bool _check_for_upx_compression = false;
 
     std::function<void(const std::string&)> _message_handler;
