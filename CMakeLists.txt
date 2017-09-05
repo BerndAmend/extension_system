@@ -132,7 +132,7 @@ set_target_properties(extension_system PROPERTIES INTERFACE_INCLUDE_DIRECTORIES 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
     enable_testing()
 
-    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy_test_extension.so
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy_test_extension
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
     # Test library

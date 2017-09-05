@@ -18,7 +18,7 @@ TEST_CASE("test if the test file can be loaded")
 {
     ExtensionSystem extensionSystem;
     extensionSystem.setVerifyCompiler(false);
-    extensionSystem.searchDirectory(".", "dummy_test_extension", false);
+    extensionSystem.addDynamicLibrary("dummy_test_extension");
     auto e = extensionSystem.extensions();
     REQUIRE(e.size() == 1);
     CHECK(e[0].getExtended()["compiler"] == "test");

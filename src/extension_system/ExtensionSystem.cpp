@@ -97,7 +97,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename)
 
 bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer)
 {
-    std::string filePath = getRealFilename(filename);
+    const std::string filePath = getRealFilename(filename);
 
     if (filePath.empty()) {
         _message_handler("addDynamicLibrary: neither " + filename + " nor " + filename + DynamicLibrary::fileExtension() + " exist.");
