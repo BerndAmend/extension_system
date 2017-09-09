@@ -103,7 +103,7 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
                           continue;
                       }
 
-                      if (ep->d_type == DT_REG || ep->d_type == DT_LNK) {
+                      if (ep->d_type == DT_REG || ep->d_type == DT_UNKNOWN || ep->d_type == DT_LNK) {
                           if (recursive && is_directory(full_name)) {
                               handle_dir(full_name);
                           } else {
