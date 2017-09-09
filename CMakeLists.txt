@@ -141,7 +141,7 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
     # Test program
     add_executable(extension_system_test test/main.cpp test/Interfaces.hpp test/catch.hpp)
     target_link_libraries(extension_system_test extension_system)
-    add_test(extension_system_test extension_system_test -r junit -o juint.xml)
+    add_test(extension_system_test extension_system_test -r junit -o juint.xml -s)
 
     # Examples
     ## Example 1

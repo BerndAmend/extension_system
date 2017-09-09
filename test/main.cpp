@@ -38,7 +38,7 @@ TEST_CASE("all expected extensions were found")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
     auto e = extensionSystem.extensions();
     INFO(messages);
     CHECK(e.size() == 5);
@@ -73,7 +73,7 @@ TEST_CASE("all expected extensions with a given interface were found")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
     auto e = extensionSystem.extensions<IExt1>();
     INFO(messages);
     CHECK(e.size() == 2);
@@ -89,7 +89,7 @@ TEST_CASE("load extension by name")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
 
     auto e = extensionSystem.createExtension<IExt1>("Ext1");
 
@@ -110,7 +110,7 @@ TEST_CASE("load extension by name and version")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
 
     auto e = extensionSystem.createExtension<IExt1>("Ext1", 100);
 
@@ -131,7 +131,7 @@ TEST_CASE("load extension by name 2")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
 
     auto e = extensionSystem.createExtension<IExt2>("Ext2");
 
@@ -153,7 +153,7 @@ TEST_CASE("check if filter work as expected")
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
     extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".");
+    extensionSystem.searchDirectory(".", true);
 
     auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
     INFO(messages);

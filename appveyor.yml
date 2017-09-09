@@ -43,6 +43,8 @@ build_script:
 
 test_script:
   - ctest -j2
+
+on_finish:
   - ps: |
       # upload results to AppVeyor
       $wc = New-Object 'System.Net.WebClient'

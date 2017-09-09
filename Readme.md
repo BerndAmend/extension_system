@@ -1,9 +1,9 @@
-# Extension System
+# Extension System [![Build Status](https://travis-ci.org/tptb/extension_system.svg?branch=master)](https://travis-ci.org/tptb/extension_system) [![Build status](https://ci.appveyor.com/api/projects/status/5cydq9lah0bj2d0m/branch/master?svg=true)](https://ci.appveyor.com/project/tptb/extension-system/branch/master)
 
 ## Overview
 
 Extension System is a library to allow programmers to efficiently extend their programmes (plugin system).
-Extension System is highliy efficient and can deal with hundreds or thousands of extensions. In difference to other plugin systems Extension System **does not** load the extension libraries while scanning for extensions. Extension System parses the shared libraries and searches for extensions within them. 
+Extension System is highliy efficient and can deal with hundreds or thousands of extensions. In difference to other plugin systems Extension System **does not** load the extension libraries while scanning for extensions. Extension System parses the shared libraries and searches for extensions within them.
 
 During scanning for extension, following metadata is extracted for each extension:
 
@@ -23,7 +23,7 @@ In order to instantiate an extension, a user has to provide:
 interface and name
 
     std::shared_ptr<Interface1> extension = extensionSystem.createExtension<Interface1>("Extension1");
-    
+
 or interface, name and specific version
 
     std::shared_ptr<Interface1> extension = extensionSystem.createExtension<Interface1>("Extension1", 3);
@@ -34,8 +34,8 @@ When an extension is instantiated, the related shared library is loaded. Extensi
 
 
 ### User-specific metadata
-While developing extensions using Extension System, a user is able to export extension-specific metadata. 
-This is data is encoded in a `key = value` style and can be used for example to 
+While developing extensions using Extension System, a user is able to export extension-specific metadata.
+This is data is encoded in a `key = value` style and can be used for example to
 
 * name a programme, the extension is designed for
 * name the extensions license
@@ -85,7 +85,7 @@ class Extension1 : public Interface1
 {
 public:
     virtual void test1() override {
-	    std::cout<<"Hello from Extension1"<<std::endl;
+        std::cout<<"Hello from Extension1"<<std::endl;
     }
 };
 EXTENSION_SYSTEM_EXTENSION(Interface1, Extension1, "Extension1", 100, "extension 1 for testing purposes (Version 100)", "")
@@ -101,7 +101,7 @@ int main() {
     extensionSystem.searchDirectory("./");
     std::shared_ptr<Interface1> e1 = extensionSystem.createExtension<Interface1>("Extension1");
     if(e1 != nullptr)
-	    e1->test1();
+        e1->test1();
     std::cout<<"Done."<<std::endl;
     return 0;
 }
@@ -110,7 +110,7 @@ int main() {
 ## Limitations
 
 * Extension System is unable to handle compressed shared libraries
-* Extension System is unable to check extension's dependencies 
+* Extension System is unable to check extension's dependencies
 
 ## License
-Extension System is licensed under [BSL 1.0 (Boost Software License 1.0)](/tptb/extension_system/src/c4fb2947529df6ba2651a3ba686e4c28afe0ae84/LICENSE_1_0.txt/) 
+Extension System is licensed under [BSL 1.0 (Boost Software License 1.0)](/tptb/extension_system/src/c4fb2947529df6ba2651a3ba686e4c28afe0ae84/LICENSE_1_0.txt/)

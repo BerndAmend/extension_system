@@ -18,7 +18,9 @@
 
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 // clang-format off
-#if __has_include(<filesystem>)
+#if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
+#include <filesystem>
+#elif __has_include(<filesystem>)
 #include <filesystem>
 #else
 #include <experimental/filesystem>
