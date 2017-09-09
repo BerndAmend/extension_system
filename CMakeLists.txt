@@ -34,7 +34,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         add_compile_options(/wd4068) # disable warning C4068: unknown pragma
 
         # enable additional compiler warnings
-        add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14623 /w14706)
+        add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14706)
     endif()
 
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -141,7 +141,7 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
     # Test program
     add_executable(extension_system_test test/main.cpp test/Interfaces.hpp test/catch.hpp)
     target_link_libraries(extension_system_test extension_system)
-    add_test(extension_system_test extension_system_test)
+    add_test(extension_system_test extension_system_test -r junit -o juint.xml)
 
     # Examples
     ## Example 1
