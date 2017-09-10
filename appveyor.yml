@@ -1,45 +1,33 @@
 shallow_clone: true
 
 platform:
-  - x86
+  - Win32
   - x64
 
-configuration:
-  - Release
+image:
+  - Visual Studio 2017
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - VS_VERSION: Visual Studio 15 2017
+    - VS_VERSION: Visual Studio 15 2017
       BOOST_ROOT: C:/Libraries/boost_1_64_0
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      BOOST_ROOT: C:/Libraries/boost_1_64_0
+    - VS_VERSION: Visual Studio 14 2015
 
 before_build:
   - ps: |
       mkdir build
       cd build
-      if ("$env:APPVEYOR_BUILD_WORKER_IMAGE" -match "Visual Studio 2015") {
-          $env:generator="Visual Studio 14 2015"
-      } elseif ("$env:APPVEYOR_BUILD_WORKER_IMAGE" -match "Visual Studio 2017") {
-          $env:generator="Visual Studio 15 2017"
-      } else {
-          # unknown
-      }
-      if ($env:PLATFORM -eq "x64") {
-          $env:generator="$env:generator Win64"
-      }
-      echo generator="$env:generator"
+
       if($env:BOOST_ROOT -eq "") {
-          cmake .. -G "$env:generator"
+          cmake .. -G "$env:generator" -A "$env:PLATFORM"
       } else {
-          cmake .. -G "$env:generator" -DBOOST_ROOT="$env:BOOST_ROOT"
+          cmake .. -G "$env:VS_VERSION" -A "$env:PLATFORM" -DBOOST_ROOT="$env:BOOST_ROOT"
       }
 
 build_script:
-  - cmake --build . --config %CONFIGURATION% -- /m /v:minimal
+  - cmake --build . --config Release
 
 test_script:
   - ctest -j2
