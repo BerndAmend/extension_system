@@ -335,7 +335,7 @@ void ExtensionSystem::removeDynamicLibrary(const std::string& filename)
 
 void ExtensionSystem::searchDirectory(const std::string& path, bool recursive)
 {
-    debugMessage("search directory path=" + path + " recursive=" + std::to_string(recursive));
+    debugMessage("search directory path=" + path + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
     std::unique_lock<std::mutex> lock(_mutex);
     filesystem::forEachFileInDirectory(path,
@@ -353,7 +353,7 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive)
 
 void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive)
 {
-    debugMessage("search directory path=" + path + "required_prefix=" + required_prefix + " recursive=" + std::to_string(recursive));
+    debugMessage("search directory path=" + path + "required_prefix=" + required_prefix + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
     std::unique_lock<std::mutex> lock(_mutex);
     const std::size_t            required_prefix_length = required_prefix.length();

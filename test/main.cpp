@@ -54,10 +54,11 @@ TEST_CASE("all expected extensions were found")
             CHECK(i.version() == 100);
         } else if (i.name() == "Ext1" && (i.version() == 100 || i.version() == 110)) {
             CHECK(i.interface_name() == "IExt1");
-            if (i.version() == 100)
+            if (i.version() == 100) {
                 CHECK(i.description() == "extension 1 for testing purposes");
-            else
+            } else {
                 CHECK(i.description() == "extension 2 for testing purposes");
+            }
         } else if (i.name() == "Ext2") {
             CHECK(i.interface_name() == "extension_system::IExt2");
             CHECK(i.description() == "extension 3 for testing purposes");
