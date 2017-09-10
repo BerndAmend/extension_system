@@ -13,7 +13,12 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-pedantic -Wnon-virtual-dtor -Woverloaded-virtual)
+        add_compile_options(-Wnon-virtual-dtor
+                            -Woverloaded-virtual
+                            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-pedantic>
+                            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.9>:-fstack-protector-strong>
+                            $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,5.0>:-Wno-missing-field-initializers>
+                        )
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
         add_compile_options(-Wno-c++98-compat -Wno-c++98-compat-pedantic
                         -Wno-global-constructors -Wno-exit-time-destructors
@@ -46,7 +51,6 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
             -Wno-conversion-null -Werror=return-type)
         add_compile_options($<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2>)
-        add_compile_options($<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.9>:-fstack-protector-strong>)
 
         if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now -pie")
