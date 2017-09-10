@@ -49,7 +49,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         add_compile_options($<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.9>:-fstack-protector-strong>)
 
         if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-            add_compile_options(-z now -pie)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now -pie")
 
             set(EXTENSION_SYSTEM_SANITIZE "" CACHE STRING "Sanitizer not all options are available in all compiler versions")
             set_property(CACHE EXTENSION_SYSTEM_SANITIZE PROPERTY STRINGS "" none address memory thread undefined leak)
