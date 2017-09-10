@@ -22,8 +22,6 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
                         -Wno-weak-vtables
                         -Wno-reserved-id-macro
                         -Wno-attributes -Weverything)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-        add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
         add_definitions(-DNOMINMAX) # force windows.h not to define min and max
@@ -35,6 +33,8 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 
         # enable additional compiler warnings
         add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14706)
+    else()
+        message(FATAL_ERROR "Unsupported or unknown compiler")
     endif()
 
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -117,7 +117,7 @@ add_library(extension_system STATIC
                         src/extension_system/string.hpp)
 target_link_libraries(extension_system ${CMAKE_DL_LIBS})
 
-if(Boost_FOUND)
+if(TARGET Boost::boost)
     target_link_libraries(extension_system Boost::boost)
 endif()
 

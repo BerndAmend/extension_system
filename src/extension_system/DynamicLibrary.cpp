@@ -9,7 +9,7 @@
 #include <extension_system/DynamicLibrary.hpp>
 #include <extension_system/macros.hpp>
 
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NO_STRICT
 #ifndef _WIN32_WINNT
@@ -25,7 +25,7 @@ using extension_system::DynamicLibrary;
 DynamicLibrary::DynamicLibrary(const std::string& filename)
     : _filename(filename)
 {
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#ifdef _WIN32
     _handle = LoadLibraryA(filename.c_str());
 #else
     _handle = dlopen(filename.c_str(), RTLD_LAZY);
@@ -38,7 +38,7 @@ DynamicLibrary::DynamicLibrary(const std::string& filename)
 DynamicLibrary::~DynamicLibrary()
 {
     if (isValid()) {
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#ifdef _WIN32
         FreeLibrary(_handle);
 #else
         dlclose(_handle);
@@ -63,7 +63,7 @@ void* DynamicLibrary::getProcAddress(const std::string& name)
     }
 
     void* func;
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#ifdef _WIN32
     static_assert(sizeof(void*) == sizeof(void (*)(void)), "object pointer and function pointer sizes must be equal");
     const auto tmp = GetProcAddress(_handle, name.c_str());
     func           = *(void**)&tmp;
@@ -78,8 +78,10 @@ void* DynamicLibrary::getProcAddress(const std::string& name)
 
 std::string DynamicLibrary::fileExtension()
 {
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#if defined(_WIN32)
     return ".dll";
+#elif defined(__APPLE__)
+    return ".dylib";
 #else
     return ".so";
 #endif
@@ -92,7 +94,7 @@ bool DynamicLibrary::isValid() const
 
 void DynamicLibrary::setLastError()
 {
-#ifdef EXTENSION_SYSTEM_OS_WINDOWS
+#ifdef _WIN32
     _last_error = std::to_string(GetLastError());
 #else
     _last_error = dlerror();
