@@ -21,10 +21,12 @@ before_build:
   - ps: |
       mkdir build
       cd build
-      if ("$env:APPVEYOR_JOB_NAME" -match "Image: Visual Studio 2015") {
+      if ("$env:APPVEYOR_BUILD_WORKER_IMAGE" -match "Visual Studio 2015") {
           $env:generator="Visual Studio 14 2015"
-      } else {
+      } elseif ("$env:APPVEYOR_BUILD_WORKER_IMAGE" -match "Visual Studio 2017") {
           $env:generator="Visual Studio 15 2017"
+      } else {
+          # unknown
       }
       if ($env:PLATFORM -eq "x64") {
           $env:generator="$env:generator Win64"
