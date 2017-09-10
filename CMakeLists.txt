@@ -91,19 +91,10 @@ endif()
 
 option(EXTENSION_SYSTEM_DISABLE_BOOST "" OFF)
 if(NOT EXTENSION_SYSTEM_DISABLE_BOOST)
-    include(CheckIncludeFileCXX)
-    CHECK_INCLUDE_FILE_CXX("boost/algorithm/searching/boyer_moore.hpp" EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
-
-    if(EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
-        message(STATUS "Use boost/algorithm/searching/boyer_moore.hpp to speed-up searching for extensions")
-        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE)
-    endif()
-
-    CHECK_INCLUDE_FILE_CXX("boost/interprocess/file_mapping.hpp" EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
-
-    if(EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
-        message(STATUS "Use Boost.Interprocess to to speed-up searching for extensions by using memory mapped files")
-        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST_INTERPROCESS)
+    find_package(Boost QUIET)
+    if(Boost_FOUND)
+        message(STATUS "Use boost (${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}) to speed-up searching for extensions")
+        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST)
     endif()
 endif()
 
@@ -125,6 +116,10 @@ add_library(extension_system STATIC
                         src/extension_system/filesystem.hpp
                         src/extension_system/string.hpp)
 target_link_libraries(extension_system ${CMAKE_DL_LIBS})
+
+if(Boost_FOUND)
+    target_link_libraries(extension_system Boost::boost)
+endif()
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
 set_target_properties(extension_system PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src")

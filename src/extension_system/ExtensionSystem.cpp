@@ -14,11 +14,8 @@
 #include <iostream>
 #include <unordered_set>
 
-#ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
+#ifdef EXTENSION_SYSTEM_USE_BOOST
 #include <boost/algorithm/searching/boyer_moore.hpp>
-#endif
-
-#ifdef EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #else
@@ -43,7 +40,7 @@ std::string getRealFilename(const std::string& filename)
     return canonical(filen).generic_string();
 }
 
-#ifdef EXTENSION_SYSTEM_USE_BOOST_BOYER_MOORE
+#ifdef EXTENSION_SYSTEM_USE_BOOST
 using string_search = boost::algorithm::boyer_moore<const char*>;
 #else
 class string_search
@@ -120,7 +117,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     std::size_t file_length  = 0;
     const char* file_content = nullptr;
 
-#ifdef EXTENSION_SYSTEM_USE_BOOST_INTERPROCESS
+#ifdef EXTENSION_SYSTEM_USE_BOOST
     (void)buffer;
     const boost::interprocess::mode_t mode = boost::interprocess::read_only;
     boost::interprocess::file_mapping fm;
