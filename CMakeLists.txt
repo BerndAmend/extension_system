@@ -14,7 +14,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-pedantic -Wnon-virtual-dtor -Woverloaded-virtual)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
         add_compile_options(-Wno-c++98-compat -Wno-c++98-compat-pedantic
                         -Wno-global-constructors -Wno-exit-time-destructors
                         -Wno-documentation
@@ -34,14 +34,14 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         # enable additional compiler warnings
         add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14706)
     else()
-        message(FATAL_ERROR "Unsupported or unknown compiler")
+        message(FATAL_ERROR "Unsupported or unknown compiler ${CMAKE_CXX_COMPILER_ID}")
     endif()
 
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release MinSizeRel RelWithDebInfo)
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
         add_compile_options(-foptimize-sibling-calls)
         add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
             -Wno-conversion-null -Werror=return-type)
