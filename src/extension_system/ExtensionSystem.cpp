@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST
+#define BOOST_DATE_TIME_NO_LIB
 #include <boost/algorithm/searching/boyer_moore.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>

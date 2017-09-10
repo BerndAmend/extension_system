@@ -16,8 +16,6 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      BOOST_ROOT: C:/Libraries/boost
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       BOOST_ROOT: C:/Libraries/boost_1_64_0
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
@@ -40,7 +38,7 @@ before_build:
       if($env:BOOST_ROOT -eq "") {
           cmake .. -G "$env:generator"
       } else {
-          cmake .. -G "$env:generator" -DBOOST_ROOT="%BOOST_ROOT%"
+          cmake .. -G "$env:generator" -DBOOST_ROOT="$env:BOOST_ROOT"
       }
 
 build_script:
