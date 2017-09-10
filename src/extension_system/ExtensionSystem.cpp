@@ -25,7 +25,7 @@
 using namespace extension_system;
 
 namespace {
-std::string getRealFilename(const std::string& filename)
+inline std::string getRealFilename(const std::string& filename)
 {
     filesystem::path filen(filename);
 
@@ -67,12 +67,12 @@ private:
 // boost broke compatibility
 // https://svn.boost.org/trac/boost/ticket/12552
 template <typename corpusIter>
-corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p)
+inline corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p)
 {
     return p.first;
 }
 template <typename corpusIter>
-corpusIter get_first_from_pair(corpusIter p)
+inline corpusIter get_first_from_pair(corpusIter p)
 {
     return p;
 }
