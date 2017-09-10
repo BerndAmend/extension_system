@@ -4,6 +4,7 @@ language: cpp
 sudo: false
 
 cache:
+  ccache: true
   directories:
     - ${TRAVIS_BUILD_DIR}/deps/cmake
     - ${TRAVIS_BUILD_DIR}/deps/llvm-3.5.2/install
