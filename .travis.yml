@@ -16,25 +16,17 @@ cache:
 
 matrix:
   include:
-    - env: BUILD_TYPE=Debug
-      os: osx
-      osx_image: xcode8
-      compiler: clang
     - env: BUILD_TYPE=Release
       os: osx
       osx_image: xcode8
       compiler: clang
 
-    - env: BUILD_TYPE=Debug
-      os: osx
-      osx_image: xcode9
-      compiler: clang
     - env: BUILD_TYPE=Release
       os: osx
       osx_image: xcode9
       compiler: clang
 
-    - env: CLANG_VERSION=3.6 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=3.6 BUILD_TYPE=Release
       os: linux
       addons: &clang36
         apt:
@@ -43,11 +35,8 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.6
-    - env: CLANG_VERSION=3.6 BUILD_TYPE=Release
-      os: linux
-      addons: *clang36
 
-    - env: CLANG_VERSION=3.7 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=3.7 BUILD_TYPE=Release
       os: linux
       addons: &clang37
         apt:
@@ -56,11 +45,8 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.7
-    - env: CLANG_VERSION=3.7 BUILD_TYPE=Release
-      os: linux
-      addons: *clang37
 
-    - env: CLANG_VERSION=3.8 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=3.8 BUILD_TYPE=Release
       os: linux
       addons: &clang38
         apt:
@@ -69,11 +55,8 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.8
-    - env: CLANG_VERSION=3.8 BUILD_TYPE=Release
-      os: linux
-      addons: *clang38
 
-    - env: CLANG_VERSION=3.9 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=3.9 BUILD_TYPE=Release
       os: linux
       addons: &clang39
         apt:
@@ -82,11 +65,8 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.9
-    - env: CLANG_VERSION=3.9 BUILD_TYPE=Release
-      os: linux
-      addons: *clang39
 
-    - env: CLANG_VERSION=4.0 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=4.0 BUILD_TYPE=Release
       os: linux
       addons: &clang40
         apt:
@@ -95,11 +75,8 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-4.0
-    - env: CLANG_VERSION=4.0 BUILD_TYPE=Release
-      os: linux
-      addons: *clang40
 
-    - env: CLANG_VERSION=5.0 BUILD_TYPE=Debug
+    - env: CLANG_VERSION=5.0 BUILD_TYPE=Release
       os: linux
       addons: &clang50
         apt:
@@ -108,59 +85,41 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
-    - env: CLANG_VERSION=5.0 BUILD_TYPE=Release
-      os: linux
-      addons: *clang50
 
-    - env: GCC_VERSION=4.8 BUILD_TYPE=Debug
+    - env: GCC_VERSION=4.8 BUILD_TYPE=Release
       os: linux
       addons: &gcc4
         apt:
           packages: g++-4.8
           sources: *sources
-    - env: GCC_VERSION=4.8 BUILD_TYPE=Release
-      os: linux
-      addons: *gcc4
 
-    - env: GCC_VERSION=4.9 BUILD_TYPE=Debug
+    - env: GCC_VERSION=4.9 BUILD_TYPE=Release
       os: linux
       addons: &gcc4
         apt:
           packages: g++-4.9
           sources: *sources
-    - env: GCC_VERSION=4.9 BUILD_TYPE=Release
-      os: linux
-      addons: *gcc4
 
-    - env: GCC_VERSION=5 BUILD_TYPE=Debug
+    - env: GCC_VERSION=5 BUILD_TYPE=Release
       os: linux
       addons: &gcc5
         apt:
           packages: g++-5
           sources: *sources
-    - env: GCC_VERSION=5 BUILD_TYPE=Release
-      os: linux
-      addons: *gcc5
 
-    - env: GCC_VERSION=6 BUILD_TYPE=Debug
+    - env: GCC_VERSION=6 BUILD_TYPE=Release
       os: linux
       addons: &gcc6
         apt:
           packages: g++-6
           sources: *sources
-    - env: GCC_VERSION=6 BUILD_TYPE=Release
-      os: linux
-      addons: *gcc6
 
-    - env: GCC_VERSION=7 BUILD_TYPE=Debug
+    - env: GCC_VERSION=7 BUILD_TYPE=Release
       os: linux
       addons: &gcc7
         apt:
           packages: g++-7
           sources: *sources
-    - env: GCC_VERSION=7 BUILD_TYPE=Release
-      os: linux
-      addons: *gcc7
 
 install:
   - if [[ -n "$CLANG_VERSION" ]]; then export CXX=clang++-$CLANG_VERSION CC=clang-$CLANG_VERSION; fi
