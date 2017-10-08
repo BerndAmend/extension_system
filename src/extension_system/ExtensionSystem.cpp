@@ -26,8 +26,7 @@
 using namespace extension_system;
 
 namespace {
-inline std::string getRealFilename(const std::string& filename)
-{
+inline std::string getRealFilename(const std::string& filename) {
     filesystem::path filen(filename);
 
     if (!filesystem::exists(filen)) { // check if the file exists
@@ -44,17 +43,13 @@ inline std::string getRealFilename(const std::string& filename)
 #ifdef EXTENSION_SYSTEM_USE_BOOST
 using string_search = boost::algorithm::boyer_moore<const char*>;
 #else
-class string_search
-{
+class string_search {
 public:
     string_search(const char* pattern_first, const char* pattern_last)
         : pattern_first_(pattern_first)
-        , pattern_last_(pattern_last)
-    {
-    }
+        , pattern_last_(pattern_last) {}
 
-    const char* operator()(const char* first, const char* last) const
-    {
+    const char* operator()(const char* first, const char* last) const {
         // HINT: memmem is much slower than std::search
         return std::search(first, last, pattern_first_, pattern_last_);
     }
@@ -68,13 +63,11 @@ private:
 // boost broke compatibility
 // https://svn.boost.org/trac/boost/ticket/12552
 template <typename corpusIter>
-inline corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p)
-{
+inline corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p) {
     return p.first;
 }
 template <typename corpusIter>
-inline corpusIter get_first_from_pair(corpusIter p)
-{
+inline corpusIter get_first_from_pair(corpusIter p) {
     return p;
 }
 
@@ -82,19 +75,15 @@ inline corpusIter get_first_from_pair(corpusIter p)
 
 ExtensionSystem::ExtensionSystem()
     : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
-    , _extension_system_alive(std::make_shared<bool>(true))
-{
-}
+    , _extension_system_alive(std::make_shared<bool>(true)) {}
 
-bool ExtensionSystem::addDynamicLibrary(const std::string& filename)
-{
+bool ExtensionSystem::addDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock(_mutex);
     std::vector<char>            buffer;
     return _addDynamicLibrary(filename, buffer);
 }
 
-bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer)
-{
+bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer) {
     debugMessage("check file " + filename);
     const std::string filePath = getRealFilename(filename);
 
@@ -221,9 +210,9 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
 
         const std::string raw = std::string(start, static_cast<std::size_t>(end - start - 1));
 
-        bool failed = false;
+        bool                                         failed = false;
         std::unordered_map<std::string, std::string> result;
-        std::string delimiter;
+        std::string                                  delimiter;
         delimiter += '\0';
         split(raw, delimiter, [&](const std::string& iter) {
             std::size_t pos = iter.find('=');
@@ -264,8 +253,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
 #if defined(EXTENSION_SYSTEM_COMPILER_GPLUSPLUS) || defined(EXTENSION_SYSTEM_COMPILER_CLANG)
                 && (desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_CLANG || desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS)
 #else
-                && desc["compiler"] == EXTENSION_SYSTEM_COMPILER
-                && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
+                && desc["compiler"] == EXTENSION_SYSTEM_COMPILER && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
                 && desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE
 #endif
                 // Should we check the operating system too?
@@ -279,8 +267,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
             }
 
             if (desc.interface_name().empty()) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name()
-                                 + " interface_name was empty or not set");
+                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " interface_name was empty or not set");
                 continue;
             }
 
@@ -321,8 +308,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     return true;
 }
 
-void ExtensionSystem::removeDynamicLibrary(const std::string& filename)
-{
+void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock(_mutex);
     auto                         real_filename = getRealFilename(filename);
     auto                         iter          = _known_extensions.find(real_filename);
@@ -331,8 +317,7 @@ void ExtensionSystem::removeDynamicLibrary(const std::string& filename)
     }
 }
 
-void ExtensionSystem::searchDirectory(const std::string& path, bool recursive)
-{
+void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
     debugMessage("search directory path=" + path + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
     std::unique_lock<std::mutex> lock(_mutex);
@@ -342,15 +327,13 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive)
                                                _addDynamicLibrary(p.string(), buffer);
                                            } else {
                                                debugMessage("ignore file " + p.string() + " due to wrong fileExtension ("
-                                                            + DynamicLibrary::fileExtension()
-                                                            + ")");
+                                                            + DynamicLibrary::fileExtension() + ")");
                                            }
                                        },
                                        recursive);
 }
 
-void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive)
-{
+void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive) {
     debugMessage("search directory path=" + path + "required_prefix=" + required_prefix + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
     std::unique_lock<std::mutex> lock(_mutex);
@@ -361,17 +344,14 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
                                                && p.filename().string().compare(0, required_prefix_length, required_prefix) == 0) {
                                                _addDynamicLibrary(p.string(), buffer);
                                            } else {
-                                               debugMessage("ignore file " + p.string()
-                                                            + " either due to wrong required_prefix or wrong fileExtension ("
-                                                            + p.extension().string()
-                                                            + ")");
+                                               debugMessage("ignore file " + p.string() + " either due to wrong required_prefix or wrong fileExtension ("
+                                                            + p.extension().string() + ")");
                                            }
                                        },
                                        recursive);
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const
-{
+std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const {
     std::unordered_map<std::string, std::unordered_set<std::string>> filterMap;
 
     for (const auto& f : metaDataFilter) {
@@ -412,8 +392,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
     return result;
 }
 
-std::vector<ExtensionDescription> ExtensionSystem::extensions() const
-{
+std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
     std::unique_lock<std::mutex>      lock(_mutex);
     std::vector<ExtensionDescription> list;
 
@@ -426,8 +405,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const
     return list;
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const
-{
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
     for (const auto& i : _known_extensions) {
         for (const auto& j : i.second.extensions) {
             if (j.interface_name() == interface_name && j.name() == name && j.version() == version) {
@@ -439,8 +417,7 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
     return ExtensionDescription();
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const
-{
+ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const {
     unsigned int                highest_version = 0;
     const ExtensionDescription* desc            = nullptr;
 
@@ -456,19 +433,16 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
     return desc != nullptr ? *desc : ExtensionDescription();
 }
 
-void ExtensionSystem::debugMessage(const std::string& msg)
-{
+void ExtensionSystem::debugMessage(const std::string& msg) {
     if (_debug_output) {
         _message_handler(msg);
     }
 }
 
-void ExtensionSystem::setVerifyCompiler(bool enable)
-{
+void ExtensionSystem::setVerifyCompiler(bool enable) {
     _verify_compiler = enable;
 }
 
-void ExtensionSystem::setEnableDebugOutput(bool enable)
-{
+void ExtensionSystem::setEnableDebugOutput(bool enable) {
     _debug_output = enable;
 }

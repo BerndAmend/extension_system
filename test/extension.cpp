@@ -9,11 +9,9 @@
 #include "Interfaces.hpp"
 #include <iostream>
 
-class Ext1 : public IExt1
-{
+class Ext1 : public IExt1 {
 public:
-    int test1() override
-    {
+    int test1() override {
         return 42;
     }
 };
@@ -24,11 +22,9 @@ EXTENSION_SYSTEM_EXTENSION(IExt1, Ext1, "Ext1", 100, "extension 1 for testing pu
 // clang-format on
 
 namespace test_namespace {
-class Ext1_1 : public IExt1
-{
+class Ext1_1 : public IExt1 {
 public:
-    int test1() override
-    {
+    int test1() override {
         return 21;
     }
 };
@@ -38,11 +34,9 @@ EXTENSION_SYSTEM_EXTENSION(IExt1, test_namespace::Ext1_1, "Ext1", 110, "extensio
                            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("Test1", "desc1"))
 // clang-format on
 
-class Ext2 : public extension_system::IExt2
-{
+class Ext2 : public extension_system::IExt2 {
 public:
-    std::string test2() override
-    {
+    std::string test2() override {
         return "Hello from Ext2";
     }
 };

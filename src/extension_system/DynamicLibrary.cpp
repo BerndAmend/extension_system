@@ -23,8 +23,7 @@
 using extension_system::DynamicLibrary;
 
 DynamicLibrary::DynamicLibrary(const std::string& filename)
-    : _filename(filename)
-{
+    : _filename(filename) {
 #ifdef _WIN32
     _handle = LoadLibraryA(filename.c_str());
 #else
@@ -35,8 +34,7 @@ DynamicLibrary::DynamicLibrary(const std::string& filename)
     }
 }
 
-DynamicLibrary::~DynamicLibrary()
-{
+DynamicLibrary::~DynamicLibrary() {
     if (isValid()) {
 #ifdef _WIN32
         FreeLibrary(_handle);
@@ -46,18 +44,15 @@ DynamicLibrary::~DynamicLibrary()
     }
 }
 
-std::string DynamicLibrary::getFilename() const
-{
+std::string DynamicLibrary::getFilename() const {
     return _filename;
 }
 
-const void* DynamicLibrary::getHandle() const
-{
+const void* DynamicLibrary::getHandle() const {
     return _handle;
 }
 
-void* DynamicLibrary::getProcAddress(const std::string& name)
-{
+void* DynamicLibrary::getProcAddress(const std::string& name) {
     if (!isValid()) {
         return nullptr;
     }
@@ -76,8 +71,7 @@ void* DynamicLibrary::getProcAddress(const std::string& name)
     return func;
 }
 
-std::string DynamicLibrary::fileExtension()
-{
+std::string DynamicLibrary::fileExtension() {
 #if defined(_WIN32)
     return ".dll";
 #elif defined(__APPLE__)
@@ -87,13 +81,11 @@ std::string DynamicLibrary::fileExtension()
 #endif
 }
 
-bool DynamicLibrary::isValid() const
-{
+bool DynamicLibrary::isValid() const {
     return _handle != nullptr;
 }
 
-void DynamicLibrary::setLastError()
-{
+void DynamicLibrary::setLastError() {
 #ifdef _WIN32
     _last_error = std::to_string(GetLastError());
 #else
@@ -101,7 +93,6 @@ void DynamicLibrary::setLastError()
 #endif
 }
 
-std::string DynamicLibrary::getLastError() const
-{
+std::string DynamicLibrary::getLastError() const {
     return _last_error;
 }

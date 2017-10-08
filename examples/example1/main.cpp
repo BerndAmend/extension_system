@@ -10,8 +10,7 @@
 #include <extension_system/ExtensionSystem.hpp>
 #include <iostream>
 
-int main()
-{
+int main() {
     extension_system::ExtensionSystem extensionSystem;
     extensionSystem.searchDirectory(".");
     std::shared_ptr<Interface1> e1 = extensionSystem.createExtension<Interface1>("Example1Extension");

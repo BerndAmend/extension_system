@@ -10,8 +10,7 @@
 #include <extension_system/ExtensionSystem.hpp>
 #include <iostream>
 
-int main()
-{
+int main() {
     extension_system::ExtensionSystem extensionSystem;
     extensionSystem.searchDirectory(".");
 
