@@ -10,7 +10,7 @@ AlignAfterOpenBracket: Align
 PenaltyExcessCharacter: 4
 PenaltyBreakComment: 5
 PenaltyBreakBeforeFirstCallParameter: 200
-BreakBeforeBraces: Mozilla
+BreakBeforeBraces: Attach
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
 PenaltyBreakFirstLessLess: 50

@@ -10,11 +10,9 @@
 #include <extension_system/Extension.hpp>
 #include <iostream>
 
-class Extension : public Interface2
-{
+class Extension : public Interface2 {
 public:
-    void test1() override
-    {
+    void test1() override {
         std::cout << "Hello from Interface2 Extension\n";
     }
 };

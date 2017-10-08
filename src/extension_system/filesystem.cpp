@@ -12,14 +12,12 @@
 using namespace extension_system::filesystem;
 
 #if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
-path extension_system::filesystem::canonical(const path& p)
-{
+path extension_system::filesystem::canonical(const path& p) {
     return p.filename();
 }
 #endif
 
-void extension_system::filesystem::forEachFileInDirectory(const path& root, const std::function<void(const path& p)>& func, bool recursive)
-{
+void extension_system::filesystem::forEachFileInDirectory(const path& root, const std::function<void(const path& p)>& func, bool recursive) {
     if (!exists(root) && !is_directory(root)) {
         return;
     }
@@ -53,14 +51,12 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
 #include <sys/types.h>
 #include <unistd.h>
 
-bool extension_system::filesystem::exists(const extension_system::filesystem::path& p)
-{
+bool extension_system::filesystem::exists(const extension_system::filesystem::path& p) {
     const std::string str = p.string();
     return access(str.c_str(), F_OK) == 0;
 }
 
-bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p)
-{
+bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p) {
     const std::string str = p.string();
     // clang-format off
     struct stat       sb {};
@@ -68,14 +64,13 @@ bool extension_system::filesystem::is_directory(const extension_system::filesyst
     return (stat(str.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
 
-extension_system::filesystem::path extension_system::filesystem::canonical(const extension_system::filesystem::path& p)
-{
+extension_system::filesystem::path extension_system::filesystem::canonical(const extension_system::filesystem::path& p) {
 #ifdef EXTENSION_SYSTEM_COMPILER_MINGW
     return p;
 #else
     std::array<char, PATH_MAX> buffer{};
-    const std::string path   = p.string();
-    const char*       result = realpath(path.c_str(), buffer.data());
+    const std::string          path   = p.string();
+    const char*                result = realpath(path.c_str(), buffer.data());
     if (result == nullptr) {
         return p; // couldn't resolve symbolic link
     }
@@ -83,10 +78,9 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 #endif
 }
 
-void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path& root,
+void extension_system::filesystem::forEachFileInDirectory(const extension_system::filesystem::path&                               root,
                                                           const std::function<void(const extension_system::filesystem::path& p)>& func,
-                                                          bool                                                                    recursive)
-{
+                                                          bool recursive) {
     const std::function<void(const extension_system::filesystem::path& p)> handle_dir
         = [&func, &recursive, &handle_dir](const extension_system::filesystem::path& p) {
 

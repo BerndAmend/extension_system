@@ -14,8 +14,7 @@
 
 using namespace extension_system;
 
-TEST_CASE("test if the test file can be loaded")
-{
+TEST_CASE("test if the test file can be loaded") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
@@ -32,8 +31,7 @@ TEST_CASE("test if the test file can be loaded")
     CHECK(e[0].description() == "extension");
 }
 
-TEST_CASE("all expected extensions were found")
-{
+TEST_CASE("all expected extensions were found") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
@@ -68,8 +66,7 @@ TEST_CASE("all expected extensions were found")
     }
 }
 
-TEST_CASE("all expected extensions with a given interface were found")
-{
+TEST_CASE("all expected extensions with a given interface were found") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
@@ -84,8 +81,7 @@ TEST_CASE("all expected extensions with a given interface were found")
     }
 }
 
-TEST_CASE("load extension by name")
-{
+TEST_CASE("load extension by name") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
@@ -105,8 +101,7 @@ TEST_CASE("load extension by name")
     CHECK(desc.version() == 110);
 }
 
-TEST_CASE("load extension by name and version")
-{
+TEST_CASE("load extension by name and version") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
@@ -126,8 +121,7 @@ TEST_CASE("load extension by name and version")
     CHECK(desc.version() == 100);
 }
 
-TEST_CASE("load extension by name 2")
-{
+TEST_CASE("load extension by name 2") {
     std::string     messages;
     ExtensionSystem extensionSystem;
     extensionSystem.setEnableDebugOutput(true);
