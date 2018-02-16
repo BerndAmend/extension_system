@@ -19,6 +19,9 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
 #endif
+#ifndef NOMINMAX
+#define NOMINMAX // force windows.h not to define min and max
+#endif
 #include <windows.h>
 #else // posix e.g. linux
 #include <dlfcn.h>

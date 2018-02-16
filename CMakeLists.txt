@@ -1,4 +1,4 @@
-# Copyright Bernd Amend and Michael Adam 2014-2017
+# Copyright Bernd Amend and Michael Adam 2014-2018
 # Distributed under the Boost Software License, Version 1.0.
 # (See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
@@ -29,7 +29,6 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
                         -Wno-attributes -Weverything)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-        add_definitions(-DNOMINMAX) # force windows.h not to define min and max
 
         # disable some annoying compiler warnings
         add_compile_options(/wd4275) # disable warning C4275: non dll-interface x used as base for dll-interface y
@@ -85,17 +84,6 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     endif()
 endif()
 
-option(EXTENSION_SYSTEM_DISABLE_BOOST "" OFF)
-if(NOT EXTENSION_SYSTEM_DISABLE_BOOST)
-    find_package(Boost QUIET)
-    if(Boost_FOUND)
-        message(STATUS "Use boost (${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}) to speed-up searching for extensions")
-        add_definitions(-DEXTENSION_SYSTEM_USE_BOOST)
-    endif()
-endif()
-
-include_directories(src)
-
 # library
 set(EXTENSION_SYSTEM_PUBLIC_HEADERS
                         src/extension_system/macros.hpp
@@ -103,6 +91,11 @@ set(EXTENSION_SYSTEM_PUBLIC_HEADERS
                         src/extension_system/DynamicLibrary.hpp
                         src/extension_system/ExtensionSystem.hpp
                         )
+add_library(extension_system_headers INTERFACE)
+target_include_directories(extension_system_headers INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:include>
+)
 
 add_library(extension_system STATIC
                         ${EXTENSION_SYSTEM_PUBLIC_HEADERS}
@@ -111,14 +104,20 @@ add_library(extension_system STATIC
                         src/extension_system/ExtensionSystem.cpp
                         src/extension_system/filesystem.hpp
                         src/extension_system/string.hpp)
-target_link_libraries(extension_system ${CMAKE_DL_LIBS})
+target_link_libraries(extension_system PUBLIC extension_system_headers
+                                       INTERFACE ${CMAKE_DL_LIBS})
 
-if(TARGET Boost::boost)
-    target_link_libraries(extension_system Boost::boost)
+option(EXTENSION_SYSTEM_DISABLE_BOOST "" OFF)
+if(NOT EXTENSION_SYSTEM_DISABLE_BOOST)
+    find_package(Boost QUIET)
+    if(Boost_FOUND)
+        message(STATUS "Use boost (${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}) to speed-up searching for extensions")
+        target_compile_definitions(extension_system PRIVATE -DEXTENSION_SYSTEM_USE_BOOST)
+        target_link_libraries(extension_system PRIVATE Boost::boost)
+    endif()
 endif()
 
 set_target_properties(extension_system PROPERTIES PUBLIC_HEADER "${EXTENSION_SYSTEM_PUBLIC_HEADERS}")
-set_target_properties(extension_system PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if(EXTENSION_SYSTEM_IS_STANDALONE)
     enable_testing()
@@ -128,6 +127,7 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
 
     # Test library
     add_library(extension_system_test_lib SHARED test/extension.cpp test/Interfaces.hpp)
+    target_link_libraries(extension_system_test_lib PRIVATE extension_system_headers)
 
     # Test program
     add_executable(extension_system_test test/main.cpp test/Interfaces.hpp test/catch.hpp)
@@ -137,11 +137,15 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
     # Examples
     ## Example 1
     add_library(extension_system_example1_extension SHARED examples/example1/Extension.cpp examples/example1/Interface.hpp)
+    target_link_libraries(extension_system_example1_extension PRIVATE extension_system_headers)
+
     add_executable(extension_system_example1 examples/example1/main.cpp examples/example1/Interface.hpp)
     target_link_libraries(extension_system_example1 extension_system)
 
     ## Example 2
     add_library(extension_system_example2_extension SHARED examples/example2/Extension.cpp examples/example2/Interface.hpp)
+    target_link_libraries(extension_system_example2_extension PRIVATE extension_system_headers)
+
     add_executable(extension_system_example2 examples/example2/main.cpp examples/example2/Interface.hpp)
     target_link_libraries(extension_system_example2 extension_system)
 
