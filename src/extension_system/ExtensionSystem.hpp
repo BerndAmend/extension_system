@@ -1,10 +1,10 @@
 ﻿/**
-    @file
-    @copyright
-        Copyright Bernd Amend and Michael Adam 2014-2017
-        Distributed under the Boost Software License, Version 1.0.
-        (See accompanying file LICENSE_1_0.txt or copy at
-        http://www.boost.org/LICENSE_1_0.txt)
+   @file
+   @copyright
+       Copyright Bernd Amend and Michael Adam 2014-2018
+       Distributed under the Boost Software License, Version 1.0.
+       (See accompanying file LICENSE_1_0.txt or copy at
+       http://www.boost.org/LICENSE_1_0.txt)
 */
 #pragma once
 
@@ -29,31 +29,24 @@ namespace extension_system {
  * \li its version.
  * Additionally a extension creator can add metadata to further describe the extension.
  */
-struct ExtensionDescription
-{
+struct ExtensionDescription {
 
-    ExtensionDescription()
-    {
-    }
+    ExtensionDescription() {}
     ExtensionDescription(const std::unordered_map<std::string, std::string>& data)
-        : _data(data)
-    {
-    }
+        : _data(data) {}
 
     /**
      * Returns if the extension is valid. An extension is invalid if the describing data structure was not found within the shared module
      * (.so/.dll ...)
      */
-    bool isValid() const
-    {
+    bool isValid() const {
         return !_data.empty();
     }
 
     /**
      * Gets the extensions name. The name is given by extension's author.
      */
-    std::string name() const
-    {
+    std::string name() const {
         return get("name");
     }
 
@@ -61,8 +54,7 @@ struct ExtensionDescription
      * Gets the version of the extension.
      * @return the version or 0 if the value couldn't be parsed or didn't exist
      */
-    unsigned int version() const
-    {
+    unsigned int version() const {
         std::stringstream str(get("version"));
         unsigned int      result = 0;
         str >> result;
@@ -72,32 +64,28 @@ struct ExtensionDescription
     /**
      * Returns extensions description.
      */
-    std::string description() const
-    {
+    std::string description() const {
         return get("description");
     }
 
     /**
      * Returns the fully qualified interface name the extension implements.
      */
-    std::string interface_name() const
-    {
+    std::string interface_name() const {
         return get("interface_name");
     }
 
     /**
      * Returns file name of the library containing the extension.
      */
-    std::string library_filename() const
-    {
+    std::string library_filename() const {
         return get("library_filename");
     }
 
     /**
      * Returns a map of additional metadata, defined by extension's author
      */
-    std::unordered_map<std::string, std::string> getExtended() const
-    {
+    std::unordered_map<std::string, std::string> getExtended() const {
         std::unordered_map<std::string, std::string> result = _data;
 
         result.erase("name");
@@ -115,8 +103,7 @@ struct ExtensionDescription
      * @param key Key to retrieve metadata for
      * @return Metadata associated with key or an empty string if key was not found in meta data
      */
-    std::string get(const std::string& key) const
-    {
+    std::string get(const std::string& key) const {
         auto iter = _data.find(key);
         if (iter == _data.end()) {
             return std::string();
@@ -128,18 +115,15 @@ struct ExtensionDescription
     /**
      * Equivalent to get()
      */
-    std::string operator[](const std::string& key) const
-    {
+    std::string operator[](const std::string& key) const {
         return get(key);
     }
 
-    bool operator==(const ExtensionDescription& desc) const
-    {
+    bool operator==(const ExtensionDescription& desc) const {
         return _data == desc._data;
     }
 
-    std::string toString() const
-    {
+    std::string toString() const {
         // clang-format off
         std::stringstream out;
         out << "  name="             << name()             << "\n"
@@ -160,8 +144,7 @@ struct ExtensionDescription
     }
 
 private:
-    std::string entry_point() const
-    {
+    std::string entry_point() const {
         return get("entry_point");
     }
 
@@ -174,8 +157,7 @@ private:
  * @brief The ExtensionSystem class
  * thread-safe
  */
-class ExtensionSystem
-{
+class ExtensionSystem {
 public:
     ExtensionSystem();
     ExtensionSystem(const ExtensionSystem&) = delete;
@@ -230,8 +212,7 @@ public:
      * Returns a list of all known extensions of a specified interface type
      */
     template <class T>
-    std::vector<ExtensionDescription> extensions(std::vector<std::pair<std::string, std::string>> metaDataFilter = {}) const
-    {
+    std::vector<ExtensionDescription> extensions(std::vector<std::pair<std::string, std::string>> metaDataFilter = {}) const {
         metaDataFilter.push_back({"interface_name", extension_system::InterfaceName<T>::getString()});
         return extensions(metaDataFilter);
     }
@@ -244,8 +225,7 @@ public:
      * @return An instance of an extension class or nullptr, if extension could not be instantiated
      */
     template <class T>
-    std::shared_ptr<T> createExtension(const std::string& name, unsigned int version)
-    {
+    std::shared_ptr<T> createExtension(const std::string& name, unsigned int version) {
         std::unique_lock<std::mutex> lock(_mutex);
         auto                         desc = _findDescription(extension_system::InterfaceName<T>::getString(), name, version);
         if (desc.isValid()) {
@@ -261,8 +241,7 @@ public:
      * @return An instance of an extension class or nullptr, if extension could not be instantiated
      */
     template <class T>
-    std::shared_ptr<T> createExtension(const std::string& name)
-    {
+    std::shared_ptr<T> createExtension(const std::string& name) {
         std::unique_lock<std::mutex> lock(_mutex);
         const auto                   desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
         if (desc.isValid()) {
@@ -278,8 +257,7 @@ public:
      * @return an instance of an extension class or a nullptr, if extension could not be instantiated
      */
     template <class T>
-    std::shared_ptr<T> createExtension(const ExtensionDescription& desc)
-    {
+    std::shared_ptr<T> createExtension(const ExtensionDescription& desc) {
         std::unique_lock<std::mutex> lock(_mutex);
         return _createExtension<T>(desc);
     }
@@ -290,8 +268,7 @@ public:
      * If extension was not created by this extension system instance, an empty ExtensionDescription will be returned.
      */
     template <class T>
-    ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const
-    {
+    ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const {
         std::unique_lock<std::mutex> lock(_mutex);
         return _findDescription(extension);
     }
@@ -302,21 +279,18 @@ public:
      * The default message handler prints to std::cerr
      * @param func Message handler function or nullptr if messages should be disabled.
      */
-    void setMessageHandler(const std::function<void(const std::string&)>& func)
-    {
+    void setMessageHandler(const std::function<void(const std::string&)>& func) {
         if (func == nullptr)
             _message_handler = [](const std::string&) {};
         else
             _message_handler = func;
     }
 
-    void setMessageHandler(std::nullptr_t)
-    {
+    void setMessageHandler(std::nullptr_t) {
         _message_handler = [](const std::string&) {};
     }
 
-    bool getVerifyCompiler() const
-    {
+    bool getVerifyCompiler() const {
         return _verify_compiler;
     }
 
@@ -333,13 +307,11 @@ public:
      * The check is costly and not required most of the time
      * @param enable
      */
-    void setCheckForUPXCompression(bool enable)
-    {
+    void setCheckForUPXCompression(bool enable) {
         _check_for_upx_compression = enable;
     }
 
-    bool getCheckForUPXCompression() const
-    {
+    bool getCheckForUPXCompression() const {
         return _check_for_upx_compression;
     }
 
@@ -350,8 +322,7 @@ private:
     ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
 
     template <class T>
-    std::shared_ptr<T> _createExtension(const ExtensionDescription& desc)
-    {
+    std::shared_ptr<T> _createExtension(const ExtensionDescription& desc) {
         if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name()) {
             return std::shared_ptr<T>();
         }
@@ -396,8 +367,7 @@ private:
     }
 
     template <class T>
-    ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const
-    {
+    ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
         const auto i = _loaded_extensions.find(extension.get());
         if (i != _loaded_extensions.end()) {
             return i->second;
@@ -406,18 +376,13 @@ private:
         }
     }
 
-    struct LibraryInfo
-    {
-        LibraryInfo()
-        {
-        }
+    struct LibraryInfo {
+        LibraryInfo() {}
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
         LibraryInfo& operator=(LibraryInfo&&) = default;
         LibraryInfo(const std::vector<ExtensionDescription>& ex)
-            : extensions(ex)
-        {
-        }
+            : extensions(ex) {}
 
         std::weak_ptr<DynamicLibrary>     dynamic_library;
         std::vector<ExtensionDescription> extensions;
@@ -431,8 +396,8 @@ private:
 
     std::function<void(const std::string&)> _message_handler;
     // used to avoid removing extensions while destroying them from the loadedExtensions map
-    std::shared_ptr<bool> _extension_system_alive;
-    mutable std::mutex    _mutex;
+    std::shared_ptr<bool>                                 _extension_system_alive;
+    mutable std::mutex                                    _mutex;
     std::unordered_map<std::string, LibraryInfo>          _known_extensions;
     std::unordered_map<const void*, ExtensionDescription> _loaded_extensions;
 

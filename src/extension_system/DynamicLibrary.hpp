@@ -1,7 +1,7 @@
 /**
     @file
     @copyright
-        Copyright Bernd Amend and Michael Adam 2014-2017
+        Copyright Bernd Amend and Michael Adam 2014-2018
         Distributed under the Boost Software License, Version 1.0.
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
@@ -13,8 +13,7 @@
 
 namespace extension_system {
 
-class DynamicLibrary
-{
+class DynamicLibrary {
 public:
     DynamicLibrary(const std::string& filename);
     DynamicLibrary(const DynamicLibrary&) = delete;
@@ -28,8 +27,7 @@ public:
     void* getProcAddress(const std::string& name);
 
     template <typename FunctionSignature>
-    std::function<FunctionSignature> getProcAddress(const std::string& name)
-    {
+    std::function<FunctionSignature> getProcAddress(const std::string& name) {
         return reinterpret_cast<FunctionSignature*>(getProcAddress(name));
     }
 

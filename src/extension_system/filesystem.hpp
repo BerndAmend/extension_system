@@ -1,7 +1,7 @@
 /**
     @file
     @copyright
-        Copyright Bernd Amend and Michael Adam 2014-2017
+        Copyright Bernd Amend and Michael Adam 2014-2018
         Distributed under the Boost Software License, Version 1.0.
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
@@ -44,45 +44,36 @@ void forEachFileInDirectory(const path& root, const std::function<void(const pat
 #else
 namespace extension_system {
 namespace filesystem {
-class path
-{
+class path {
 public:
     path() = default;
-    path(const path& p)
-    {
+    path(const path& p) {
         *this = p._pathname;
     }
-    path(const char* p)
-    {
+    path(const char* p) {
         *this = std::string(p);
     }
-    path(const std::string& p)
-    {
+    path(const std::string& p) {
         *this = p;
     }
 
-    path& operator=(const path& p)
-    {
+    path& operator=(const path& p) {
         *this = p._pathname;
         return *this;
     }
-    path& operator=(const std::string& p)
-    {
+    path& operator=(const std::string& p) {
         _pathname = p;
         return *this;
     }
 
-    const std::string string() const
-    {
+    const std::string string() const {
         return _pathname;
     }
-    const std::string generic_string() const
-    {
+    const std::string generic_string() const {
         return _pathname;
     }
 
-    path filename() const
-    {
+    path filename() const {
         path result;
         split(_pathname, "/", [&](const std::string& str) {
             result = str;
@@ -91,8 +82,7 @@ public:
         return result;
     }
 
-    path extension() const
-    {
+    path extension() const {
         const auto name = filename().string();
         if (name == "." || name == "..")
             return path();
@@ -102,13 +92,11 @@ public:
         return name.substr(pos);
     }
 
-    path operator/(const std::string& rhs) const
-    {
+    path operator/(const std::string& rhs) const {
         return path(this->string() + "/" + rhs);
     }
 
-    path operator/(const path& rhs) const
-    {
+    path operator/(const path& rhs) const {
         return (*this) / rhs.string();
     }
 

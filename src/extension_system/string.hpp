@@ -1,10 +1,10 @@
 /**
-    @file
-    @copyright
-        Copyright Bernd Amend and Michael Adam 2014-2017
-        Distributed under the Boost Software License, Version 1.0.
-        (See accompanying file LICENSE_1_0.txt or copy at
-        http://www.boost.org/LICENSE_1_0.txt)
+   @file
+   @copyright
+       Copyright Bernd Amend and Michael Adam 2014-2018
+       Distributed under the Boost Software License, Version 1.0.
+       (See accompanying file LICENSE_1_0.txt or copy at
+       http://www.boost.org/LICENSE_1_0.txt)
 */
 #pragma once
 
@@ -13,8 +13,7 @@
 
 namespace extension_system {
 
-inline static void split(const std::string& s, const std::string& delimiter, const std::function<bool(const std::string&)>& func)
-{
+inline static void split(const std::string& s, const std::string& delimiter, const std::function<bool(const std::string&)>& func) {
     std::size_t pos      = 0;
     std::size_t last_pos = 0;
     do {

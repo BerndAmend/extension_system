@@ -1,7 +1,7 @@
 /**
     @file
     @copyright
-        Copyright Bernd Amend and Michael Adam 2014-2017
+        Copyright Bernd Amend and Michael Adam 2014-2018
         Distributed under the Boost Software License, Version 1.0.
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
@@ -68,8 +68,7 @@
 // Interface helper
 namespace extension_system {
 template <typename T>
-struct InterfaceName
-{
+struct InterfaceName {
     // You have to call EXTENSION_SYSTEM_INTERFACE(T) for your interface
 };
 }
@@ -79,14 +78,12 @@ struct InterfaceName
  * In order to create extensions implementing a certain interface, this interface has to be exportet using EXTENSION_SYSTEM_INTERFACE macro
  * You have to call this macro with the fully qualified typename in the root namespace!
  */
-#define EXTENSION_SYSTEM_INTERFACE(T)                   \
-    namespace extension_system {                        \
-    template <>                                         \
-    struct InterfaceName<T>                             \
-    {                                                   \
-        inline constexpr static const char* getString() \
-        {                                               \
-            return #T;                                  \
-        }                                               \
-    };                                                  \
+#define EXTENSION_SYSTEM_INTERFACE(T)                     \
+    namespace extension_system {                          \
+    template <>                                           \
+    struct InterfaceName<T> {                             \
+        inline constexpr static const char* getString() { \
+            return #T;                                    \
+        }                                                 \
+    };                                                    \
     }
