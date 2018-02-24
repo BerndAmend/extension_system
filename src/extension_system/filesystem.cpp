@@ -59,9 +59,7 @@ bool extension_system::filesystem::exists(const extension_system::filesystem::pa
 // NOLINTNEXTLINE(readability-identifier-naming)
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p) {
     const std::string str = p.string();
-    // clang-format off
     struct stat       sb {};
-    // clang-format on
     return (stat(str.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
 
@@ -72,9 +70,8 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
     std::array<char, PATH_MAX> buffer{};
     const std::string          path   = p.string();
     const char*                result = realpath(path.c_str(), buffer.data());
-    if (result == nullptr) {
+    if (result == nullptr)
         return p; // couldn't resolve symbolic link
-    }
     return std::string(result);
 #endif
 }
@@ -94,16 +91,14 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
                       const std::string      name{ep->d_name};
                       const filesystem::path full_name = p / name;
 
-                      if (name == "." || name == "..") {
+                      if (name == "." || name == "..")
                           continue;
-                      }
 
                       if (ep->d_type == DT_REG || ep->d_type == DT_UNKNOWN || ep->d_type == DT_LNK) {
-                          if (recursive && is_directory(full_name)) {
+                          if (recursive && is_directory(full_name))
                               handle_dir(full_name);
-                          } else {
+                          else
                               func(full_name);
-                          }
                       } else if (recursive && ep->d_type == DT_DIR) {
                           handle_dir(full_name);
                       }

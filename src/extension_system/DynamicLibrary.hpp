@@ -13,7 +13,7 @@
 
 namespace extension_system {
 
-class DynamicLibrary {
+class DynamicLibrary final {
 public:
     DynamicLibrary(const std::string& filename);
     DynamicLibrary(const DynamicLibrary&) = delete;

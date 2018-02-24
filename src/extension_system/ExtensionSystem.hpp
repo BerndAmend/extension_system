@@ -21,6 +21,8 @@
 
 namespace extension_system {
 
+using ExtensionVersion = uint32_t;
+
 /**
  * Structure that describes an extenstion.
  * Basically an extension is described by
@@ -29,7 +31,7 @@ namespace extension_system {
  * \li its version.
  * Additionally a extension creator can add metadata to further describe the extension.
  */
-struct ExtensionDescription {
+struct ExtensionDescription final {
 
     ExtensionDescription() {}
     ExtensionDescription(const std::unordered_map<std::string, std::string>& data)
@@ -54,9 +56,9 @@ struct ExtensionDescription {
      * Gets the version of the extension.
      * @return the version or 0 if the value couldn't be parsed or didn't exist
      */
-    unsigned int version() const {
+    ExtensionVersion version() const {
         std::stringstream str(get("version"));
-        unsigned int      result = 0;
+        ExtensionVersion  result{};
         str >> result;
         return result;
     }
@@ -105,11 +107,10 @@ struct ExtensionDescription {
      */
     std::string get(const std::string& key) const {
         auto iter = _data.find(key);
-        if (iter == _data.end()) {
+        if (iter == _data.end())
             return std::string();
-        } else {
+        else
             return iter->second;
-        }
     }
 
     /**
@@ -136,9 +137,8 @@ struct ExtensionDescription {
         const auto extended = getExtended();
         if (!extended.empty()) {
             out << "  Extended data:\n";
-            for (const auto& iter : _data) {
+            for (const auto& iter : _data)
                 out << "    " << iter.first << " = " << iter.second << "\n";
-            }
         }
         return out.str();
     }
@@ -225,13 +225,12 @@ public:
      * @return An instance of an extension class or nullptr, if extension could not be instantiated
      */
     template <class T>
-    std::shared_ptr<T> createExtension(const std::string& name, unsigned int version) {
+    std::shared_ptr<T> createExtension(const std::string& name, ExtensionVersion version) {
         std::unique_lock<std::mutex> lock(_mutex);
         auto                         desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name, version);
-        if (desc.isValid()) {
-            return _createExtension<T>(desc);
-        }
-        return std::shared_ptr<T>();
+        if (!desc.isValid())
+            return {};
+        return _createExtension<T>(desc);
     }
 
     /**
@@ -244,10 +243,9 @@ public:
     std::shared_ptr<T> createExtension(const std::string& name) {
         std::unique_lock<std::mutex> lock(_mutex);
         const auto                   desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name);
-        if (desc.isValid()) {
-            return _createExtension<T>(desc);
-        }
-        return std::shared_ptr<T>();
+        if (!desc.isValid())
+            return {};
+        return _createExtension<T>(desc);
     }
 
     /**
@@ -318,14 +316,13 @@ public:
 private:
     bool addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
 
-    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name, unsigned int version) const;
+    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name, ExtensionVersion version) const;
     ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const;
 
     template <class T>
     std::shared_ptr<T> _createExtension(const ExtensionDescription& desc) {
-        if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name()) {
-            return std::shared_ptr<T>();
-        }
+        if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
+            return {};
 
         for (auto& i : _known_extensions) {
             for (auto& j : i.second.extensions) {
@@ -333,15 +330,13 @@ private:
                     std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamic_library.lock();
                     if (dynlib == nullptr) {
                         dynlib = std::make_shared<DynamicLibrary>(i.first);
-                        if (!dynlib->isValid()) {
+                        if (!dynlib->isValid())
                             _message_handler("_createExtension: " + dynlib->getLastError());
-                        }
                         i.second.dynamic_library = dynlib;
                     }
 
-                    if (dynlib == nullptr) {
+                    if (dynlib == nullptr)
                         continue;
-                    }
 
                     const auto func = dynlib->getProcAddress<T*(T*, const char**)>(j.entry_point());
 
@@ -363,20 +358,19 @@ private:
                 }
             }
         }
-        return std::shared_ptr<T>();
+        return {};
     }
 
     template <class T>
     ExtensionDescription findDescriptionUnsafe(const std::shared_ptr<T>& extension) const {
         const auto i = _loaded_extensions.find(extension.get());
-        if (i != _loaded_extensions.end()) {
+        if (i != _loaded_extensions.end())
             return i->second;
-        } else {
-            return ExtensionDescription();
-        }
+        else
+            return {};
     }
 
-    struct LibraryInfo {
+    struct LibraryInfo final {
         LibraryInfo() {}
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
