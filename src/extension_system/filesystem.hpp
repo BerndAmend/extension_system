@@ -29,7 +29,11 @@
 namespace extension_system {
 namespace filesystem {
 #if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
-using namespace std::tr2::sys; // >=VS2012
+#if EXTENSION_SYSTEM_COMPILER_VERSION < 1912
+using namespace std::tr2::sys;
+#else
+using namespace std::experimental::filesystem;
+#endif
 path canonical(const path& p);
 #elif __has_include(<experimental/filesystem>)
 using namespace std::experimental::filesystem;
