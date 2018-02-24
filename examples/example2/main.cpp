@@ -11,11 +11,11 @@
 #include <iostream>
 
 int main() {
-    extension_system::ExtensionSystem extensionSystem;
-    extensionSystem.searchDirectory(".");
+    extension_system::ExtensionSystem extension_system;
+    extension_system.searchDirectory(".");
 
     // iterate through all known Interface2 extensions and print metadata information
-    for (const auto& extension : extensionSystem.extensions<Interface2>()) {
+    for (const auto& extension : extension_system.extensions<Interface2>()) {
         std::cout << "Extension: " << extension.name() << "(" << extension.version() << ")\n"
                   << "Description: " << extension.description() << "\n"
                   << "Author: " << extension["author"] << "\n"
@@ -24,7 +24,7 @@ int main() {
     }
 
     // create extension
-    std::shared_ptr<Interface2> e1 = extensionSystem.createExtension<Interface2>("Example2Extension");
+    std::shared_ptr<Interface2> e1 = extension_system.createExtension<Interface2>("Example2Extension");
     if (e1 != nullptr) {
         e1->test1();
     }

@@ -227,7 +227,7 @@ public:
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name, unsigned int version) {
         std::unique_lock<std::mutex> lock(_mutex);
-        auto                         desc = _findDescription(extension_system::InterfaceName<T>::getString(), name, version);
+        auto                         desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name, version);
         if (desc.isValid()) {
             return _createExtension<T>(desc);
         }
@@ -243,7 +243,7 @@ public:
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name) {
         std::unique_lock<std::mutex> lock(_mutex);
-        const auto                   desc = _findDescription(extension_system::InterfaceName<T>::getString(), name);
+        const auto                   desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name);
         if (desc.isValid()) {
             return _createExtension<T>(desc);
         }
@@ -270,7 +270,7 @@ public:
     template <class T>
     ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const {
         std::unique_lock<std::mutex> lock(_mutex);
-        return _findDescription(extension);
+        return findDescriptionUnsafe(extension);
     }
 
     /**
@@ -316,10 +316,10 @@ public:
     }
 
 private:
-    bool _addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
+    bool addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
 
-    ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const;
-    ExtensionDescription _findDescription(const std::string& interface_name, const std::string& name) const;
+    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name, unsigned int version) const;
+    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const;
 
     template <class T>
     std::shared_ptr<T> _createExtension(const ExtensionDescription& desc) {
@@ -367,7 +367,7 @@ private:
     }
 
     template <class T>
-    ExtensionDescription _findDescription(const std::shared_ptr<T> extension) const {
+    ExtensionDescription findDescriptionUnsafe(const std::shared_ptr<T>& extension) const {
         const auto i = _loaded_extensions.find(extension.get());
         if (i != _loaded_extensions.end()) {
             return i->second;

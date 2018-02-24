@@ -16,12 +16,12 @@ using namespace extension_system;
 
 TEST_CASE("test if the test file can be loaded") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.setVerifyCompiler(false);
-    extensionSystem.addDynamicLibrary("dummy_test_extension");
-    auto e = extensionSystem.extensions();
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.setVerifyCompiler(false);
+    extension_system.addDynamicLibrary("dummy_test_extension");
+    auto e = extension_system.extensions();
     INFO(messages);
     REQUIRE(e.size() == 1);
     CHECK(e[0].getExtended()["compiler"] == "test");
@@ -33,11 +33,11 @@ TEST_CASE("test if the test file can be loaded") {
 
 TEST_CASE("all expected extensions were found") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
-    auto e = extensionSystem.extensions();
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
+    auto e = extension_system.extensions();
     INFO(messages);
     CHECK(e.size() == 5);
 
@@ -68,11 +68,11 @@ TEST_CASE("all expected extensions were found") {
 
 TEST_CASE("all expected extensions with a given interface were found") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
-    auto e = extensionSystem.extensions<IExt1>();
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
+    auto e = extension_system.extensions<IExt1>();
     INFO(messages);
     CHECK(e.size() == 2);
 
@@ -83,12 +83,12 @@ TEST_CASE("all expected extensions with a given interface were found") {
 
 TEST_CASE("load extension by name") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
 
-    auto e = extensionSystem.createExtension<IExt1>("Ext1");
+    auto e = extension_system.createExtension<IExt1>("Ext1");
 
     INFO(messages);
 
@@ -96,19 +96,19 @@ TEST_CASE("load extension by name") {
 
     CHECK(e->test1() == 21);
 
-    auto desc = extensionSystem.findDescription(e);
+    auto desc = extension_system.findDescription(e);
     CHECK(desc.isValid());
     CHECK(desc.version() == 110);
 }
 
 TEST_CASE("load extension by name and version") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
 
-    auto e = extensionSystem.createExtension<IExt1>("Ext1", 100);
+    auto e = extension_system.createExtension<IExt1>("Ext1", 100);
 
     INFO(messages);
 
@@ -116,19 +116,19 @@ TEST_CASE("load extension by name and version") {
 
     CHECK(e->test1() == 42);
 
-    auto desc = extensionSystem.findDescription(e);
+    auto desc = extension_system.findDescription(e);
     CHECK(desc.isValid());
     CHECK(desc.version() == 100);
 }
 
 TEST_CASE("load extension by name 2") {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
 
-    auto e = extensionSystem.createExtension<IExt2>("Ext2");
+    auto e = extension_system.createExtension<IExt2>("Ext2");
 
     INFO(messages);
 
@@ -136,7 +136,7 @@ TEST_CASE("load extension by name 2") {
 
     CHECK_THAT(e->test2(), Catch::Matchers::Equals("Hello from Ext2"));
 
-    auto desc = extensionSystem.findDescription(e);
+    auto desc = extension_system.findDescription(e);
     CHECK(desc.isValid());
     CHECK(desc.version() == 100);
 }
@@ -145,15 +145,15 @@ TEST_CASE("load extension by name 2") {
 TEST_CASE("check if filter work as expected")
 {
     std::string     messages;
-    ExtensionSystem extensionSystem;
-    extensionSystem.setEnableDebugOutput(true);
-    extensionSystem.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
-    extensionSystem.searchDirectory(".", true);
+    ExtensionSystem extension_system;
+    extension_system.setEnableDebugOutput(true);
+    extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
+    extension_system.searchDirectory(".", true);
 
-    auto filteredExtensions = extensionSystem.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
+    auto filtered_extensions = extension_system.extensions({{"Test1", "desc1"}, {"Test1", "desc2"}, {"Test3", "desc3"}});
     INFO(messages);
-    for (const auto& i : filteredExtensions) {
-        auto e4 = extensionSystem.createExtension<IExt2>(i);
+    for (const auto& i : filtered_extensions) {
+        auto e4 = extension_system.createExtension<IExt2>(i);
         if (e4 != nullptr) {
             std::cout << i.toString() << "\n";
             e4->test2();

@@ -41,37 +41,37 @@ inline std::string getRealFilename(const std::string& filename) {
 }
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST
-using string_search = boost::algorithm::boyer_moore<const char*>;
+using StringSearch = boost::algorithm::boyer_moore<const char*>;
 #else
-class string_search {
+class StringSearch {
 public:
-    string_search(const char* pattern_first, const char* pattern_last)
-        : pattern_first_(pattern_first)
-        , pattern_last_(pattern_last) {}
+    StringSearch(const char* pattern_first, const char* pattern_last)
+        : _pattern_first(pattern_first)
+        , _pattern_last(pattern_last) {}
 
     const char* operator()(const char* first, const char* last) const {
         // HINT: memmem is much slower than std::search
-        return std::search(first, last, pattern_first_, pattern_last_);
+        return std::search(first, last, _pattern_first, _pattern_last);
     }
 
 private:
-    const char* pattern_first_;
-    const char* pattern_last_;
+    const char* _pattern_first;
+    const char* _pattern_last;
 };
 #endif
+
+} // namespace
 
 // boost broke compatibility
 // https://svn.boost.org/trac/boost/ticket/12552
 template <typename corpusIter>
-inline corpusIter get_first_from_pair(const std::pair<corpusIter, corpusIter>& p) {
+inline corpusIter getFirstFromPair(const std::pair<corpusIter, corpusIter>& p) {
     return p.first;
 }
 template <typename corpusIter>
-inline corpusIter get_first_from_pair(corpusIter p) {
+inline corpusIter getFirstFromPair(corpusIter p) {
     return p;
 }
-
-} // namespace
 
 ExtensionSystem::ExtensionSystem()
     : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
@@ -80,24 +80,24 @@ ExtensionSystem::ExtensionSystem()
 bool ExtensionSystem::addDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock(_mutex);
     std::vector<char>            buffer;
-    return _addDynamicLibrary(filename, buffer);
+    return addDynamicLibrary(filename, buffer);
 }
 
-bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vector<char>& buffer) {
+bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector<char>& buffer) {
     debugMessage("check file " + filename);
-    const std::string filePath = getRealFilename(filename);
+    const std::string file_path = getRealFilename(filename);
 
-    if (filePath.empty()) {
+    if (file_path.empty()) {
         _message_handler("addDynamicLibrary: neither " + filename + " nor " + filename + DynamicLibrary::fileExtension() + " exist.");
         return false;
     }
 
-    if (filesystem::is_directory(filePath)) {
+    if (filesystem::is_directory(file_path)) {
         _message_handler("addDynamicLibrary: doesn't support adding directories directory=" + filename);
         return false;
     }
 
-    auto already_loaded = _known_extensions.find(filePath);
+    auto already_loaded = _known_extensions.find(file_path);
 
     // don't reload library, if there are already references to one contained extension
     if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired()) {
@@ -115,7 +115,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     boost::interprocess::mapped_region file;
 
     try {
-        fm = boost::interprocess::file_mapping(filePath.c_str(), mode);
+        fm = boost::interprocess::file_mapping(file_path.c_str(), mode);
     } catch (const boost::interprocess::interprocess_exception& e) {
         _message_handler(std::string("file_mapping failed ") + e.what());
         return false;
@@ -129,11 +129,11 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     }
 
     file_length  = file.get_size();
-    file_content = reinterpret_cast<const char*>(file.get_address());
+    file_content = reinterpret_cast<const char*>(file.get_address()); // NOLINT
 #else
     {
         std::ifstream file;
-        file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
+        file.open(file_path, std::ios::in | std::ios::binary | std::ios::ate);
 
         if (!file) {
             _message_handler("couldn't open file");
@@ -162,18 +162,18 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     const char* file_end = file_content + file_length;
 
     const std::string start_string = desc_start;
-    string_search     search_start(start_string.c_str(), start_string.c_str() + start_string.length());
+    StringSearch      search_start(start_string.c_str(), start_string.c_str() + start_string.length());
 
-    const char* found = get_first_from_pair(search_start(file_content, file_end));
+    const char* found = getFirstFromPair(search_start(file_content, file_end));
 
     if (found == file_end) { // no tag found, skip file
         if (_check_for_upx_compression) {
-            string_search search_upx(upx_string.c_str(), upx_string.c_str() + upx_string.length());
-            string_search search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(),
-                                                      upx_exclamation_mark_string.c_str() + upx_exclamation_mark_string.length());
+            StringSearch search_upx(upx_string.c_str(), upx_string.c_str() + upx_string.length());
+            StringSearch search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(),
+                                                     upx_exclamation_mark_string.c_str() + upx_exclamation_mark_string.length());
             // check only for upx if the file didn't contain any tags at all
-            const char* found_upx_exclamation_mark = get_first_from_pair(search_upx_exclamation_mark(file_content, file_end));
-            const char* found_upx                  = get_first_from_pair(search_upx(file_content, file_end));
+            const char* found_upx_exclamation_mark = getFirstFromPair(search_upx_exclamation_mark(file_content, file_end));
+            const char* found_upx                  = getFirstFromPair(search_upx(file_content, file_end));
 
             if (found_upx != file_end && found_upx_exclamation_mark != file_end && found_upx < found_upx_exclamation_mark) {
                 _message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename
@@ -184,7 +184,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     }
 
     const std::string end_string = desc_end;
-    string_search     search_end(end_string.c_str(), end_string.c_str() + end_string.length());
+    StringSearch      search_end(end_string.c_str(), end_string.c_str() + end_string.length());
 
     std::vector<std::unordered_map<std::string, std::string>> data;
 
@@ -192,7 +192,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
         const char* start = found;
 
         // search the end tag
-        found           = get_first_from_pair(search_end(found + 1, file_end));
+        found           = getFirstFromPair(search_end(found + 1, file_end));
         const char* end = found;
 
         if (end == file_end) { // end tag not found
@@ -201,7 +201,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
         }
 
         // search the next start tag and check if it is interleaved with current section
-        found = get_first_from_pair(search_start(start + 1, file_end));
+        found = getFirstFromPair(search_start(start + 1, file_end));
 
         if (found < end) {
             _message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
@@ -232,7 +232,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
             return true;
         });
 
-        result["library_filename"] = filePath;
+        result["library_filename"] = file_path;
 
         if (failed) {
             // we already printed an error
@@ -242,7 +242,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
             _message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
         }
 
-        found = get_first_from_pair(search_start(end, file_end));
+        found = getFirstFromPair(search_start(end, file_end));
     }
 
     std::vector<ExtensionDescription> extension_list;
@@ -304,7 +304,7 @@ bool ExtensionSystem::_addDynamicLibrary(const std::string& filename, std::vecto
     }
 
     // The handling of extensions with same name and version number is currently broken
-    _known_extensions[filePath] = LibraryInfo(extension_list);
+    _known_extensions[file_path] = LibraryInfo(extension_list);
     return true;
 }
 
@@ -324,7 +324,7 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension()) {
-                                               _addDynamicLibrary(p.string(), buffer);
+                                               addDynamicLibrary(p.string(), buffer);
                                            } else {
                                                debugMessage("ignore file " + p.string() + " due to wrong fileExtension ("
                                                             + DynamicLibrary::fileExtension() + ")");
@@ -342,7 +342,7 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
                                        [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension()
                                                && p.filename().string().compare(0, required_prefix_length, required_prefix) == 0) {
-                                               _addDynamicLibrary(p.string(), buffer);
+                                               addDynamicLibrary(p.string(), buffer);
                                            } else {
                                                debugMessage("ignore file " + p.string() + " either due to wrong required_prefix or wrong fileExtension ("
                                                             + p.extension().string() + ")");
@@ -352,10 +352,10 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const {
-    std::unordered_map<std::string, std::unordered_set<std::string>> filterMap;
+    std::unordered_map<std::string, std::unordered_set<std::string>> filter_map;
 
     for (const auto& f : metaDataFilter) {
-        filterMap[f.first].insert(f.second);
+        filter_map[f.first].insert(f.second);
     }
 
     std::unique_lock<std::mutex>      lock(_mutex);
@@ -364,26 +364,26 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
     for (const auto& i : _known_extensions) {
         for (const auto& j : i.second.extensions) {
             // check all filters
-            bool addExtension = true;
+            bool add_extension = true;
 
-            for (const auto& filter : filterMap) {
+            for (const auto& filter : filter_map) {
                 auto extended = j._data;
 
                 // search extended data if filtered metadata is present
-                auto extIter = extended.find(filter.first);
+                auto ext_iter = extended.find(filter.first);
 
-                if (extIter == extended.end()) {
-                    addExtension = false;
+                if (ext_iter == extended.end()) {
+                    add_extension = false;
                     break;
                 }
 
                 // check if metadata value is within filter values
-                if (filter.second.find(extIter->second) == filter.second.end()) {
-                    addExtension = false;
+                if (filter.second.find(ext_iter->second) == filter.second.end()) {
+                    add_extension = false;
                     break;
                 }
             }
-            if (addExtension) {
+            if (add_extension) {
                 result.push_back(j);
             }
         }
@@ -405,7 +405,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
     return list;
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name, unsigned int version) const {
+ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name, unsigned int version) const {
     for (const auto& i : _known_extensions) {
         for (const auto& j : i.second.extensions) {
             if (j.interface_name() == interface_name && j.name() == name && j.version() == version) {
@@ -417,7 +417,7 @@ ExtensionDescription ExtensionSystem::_findDescription(const std::string& interf
     return ExtensionDescription();
 }
 
-ExtensionDescription ExtensionSystem::_findDescription(const std::string& interface_name, const std::string& name) const {
+ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const {
     unsigned int                highest_version = 0;
     const ExtensionDescription* desc            = nullptr;
 

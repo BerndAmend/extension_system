@@ -56,6 +56,7 @@ bool extension_system::filesystem::exists(const extension_system::filesystem::pa
     return access(str.c_str(), F_OK) == 0;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p) {
     const std::string str = p.string();
     // clang-format off

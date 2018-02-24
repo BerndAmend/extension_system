@@ -69,6 +69,7 @@ public:
     const std::string string() const {
         return _pathname;
     }
+    // NOLINTNEXTLINE(readability-identifier-naming)
     const std::string generic_string() const {
         return _pathname;
     }
