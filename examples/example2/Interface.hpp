@@ -9,10 +9,11 @@
 #pragma once
 
 #include <extension_system/Extension.hpp>
+#include <string>
 
 class Interface2 {
 public:
-    virtual void test1() = 0;
-    virtual ~Interface2() {}
+    virtual std::string test2() = 0;
+    virtual ~Interface2()       = default;
 };
 EXTENSION_SYSTEM_INTERFACE(Interface2)

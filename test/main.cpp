@@ -24,8 +24,8 @@ TEST_CASE("test if the test file can be loaded") {
     auto e = extension_system.extensions();
     INFO(messages);
     REQUIRE(e.size() == 1);
-    CHECK(e[0].getExtended()["compiler"] == "test");
-    CHECK(e[0].getExtended()["compiler_version"] == "1");
+    CHECK(e[0].get("compiler") == "test");
+    CHECK(e[0].get("compiler_version") == "1");
     CHECK(e[0].name() == "ext_name");
     CHECK(e[0].interface_name() == "ext_interface");
     CHECK(e[0].description() == "extension");
@@ -132,7 +132,7 @@ TEST_CASE("load extension by name 2") {
 
     REQUIRE(e != nullptr);
 
-    CHECK_THAT(e->test2(), Catch::Matchers::Equals("Hello from Ext2"));
+    CHECK(e->test2() == "Hello from Ext2");
 
     auto desc = extension_system.findDescription(e);
     CHECK(desc.isValid());
@@ -153,10 +153,10 @@ TEST_CASE("check if filter work as expected")
     for (const auto& i : filtered_extensions) {
         auto e4 = extension_system.createExtension<IExt2>(i);
         if (e4 != nullptr) {
-            std::cout << i.toString() << "\n";
+            std::cout << to_string(i) << "\n";
             e4->test2();
         } else {
-            std::cout << "Wrong interface:\n" << i.toString() << "\n";
+            std::cout << "Wrong interface:\n" << to_string(i) << "\n";
         }
     }
 }

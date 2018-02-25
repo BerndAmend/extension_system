@@ -29,12 +29,19 @@ using ExtensionVersion = uint32_t;
  * \li its name and
  * \li its version.
  * Additionally a extension creator can add metadata to further describe the extension.
+ * The handling of extensions with same name and version number in different libraries is currently broken
  */
-struct ExtensionDescription final {
+class ExtensionDescription final {
+public:
+    ExtensionDescription()                            = default;
+    ExtensionDescription(ExtensionDescription&&)      = default;
+    ExtensionDescription(const ExtensionDescription&) = default;
+    ExtensionDescription& operator=(ExtensionDescription&&) = default;
+    ExtensionDescription& operator=(const ExtensionDescription&) = default;
 
-    ExtensionDescription() {}
-    ExtensionDescription(const std::unordered_map<std::string, std::string>& data)
-        : _data{data} {}
+    ExtensionDescription(std::unordered_map<std::string, std::string>&& data, ExtensionVersion version)
+        : _data{data}
+        , _version{version} {}
 
     /**
      * Returns if the extension is valid. An extension is invalid if the describing data structure was not found within the shared module
@@ -56,10 +63,7 @@ struct ExtensionDescription final {
      * @return the version or 0 if the value couldn't be parsed or didn't exist
      */
     ExtensionVersion version() const {
-        std::stringstream str{get("version")};
-        ExtensionVersion  result{};
-        str >> result;
-        return result;
+        return _version;
     }
 
     /**
@@ -86,17 +90,8 @@ struct ExtensionDescription final {
     /**
      * Returns a map of additional metadata, defined by extension's author
      */
-    std::unordered_map<std::string, std::string> getExtended() const {
-        std::unordered_map<std::string, std::string> result = _data;
-
-        result.erase("name");
-        result.erase("version");
-        result.erase("description");
-        result.erase("interface_name");
-        result.erase("entry_point");
-        result.erase("library_filename");
-
-        return result;
+    const std::unordered_map<std::string, std::string>& data() const {
+        return _data;
     }
 
     /**
@@ -119,54 +114,39 @@ struct ExtensionDescription final {
     }
 
     bool operator==(const ExtensionDescription& desc) const {
-        return _data == desc._data;
-    }
-
-    std::string toString() const {
-        // clang-format off
-        std::stringstream out;
-        out << "  name="             << name()             << "\n"
-               "  version="          << version()          << "\n"
-               "  description="      << description()      << "\n"
-               "  interface_name="   << interface_name()   << "\n"
-               "  library_filename=" << library_filename() << "\n";
-        // clang-format on
-
-        const auto extended = getExtended();
-        if (!extended.empty()) {
-            out << "  Extended data:\n";
-            for (const auto& iter : _data)
-                out << "    " << iter.first << " = " << iter.second << "\n";
-        }
-        return out.str();
+        return _data == desc._data && _version == desc._version;
     }
 
 private:
-    std::string entry_point() const {
-        return get("entry_point");
-    }
-
     std::unordered_map<std::string, std::string> _data;
-
-    friend class ExtensionSystem;
+    ExtensionVersion                             _version{};
 };
+
+inline std::string to_string(const ExtensionDescription& e) {
+    std::stringstream out;
+    for (const auto& iter : e.data())
+        out << "  " << iter.first << " = " << iter.second << "\n";
+    return out.str();
+}
 
 /**
  * @brief The ExtensionSystem class
  * thread-safe
  */
-class ExtensionSystem {
+class ExtensionSystem final {
 public:
     ExtensionSystem();
+    ExtensionSystem(ExtensionSystem&&)      = delete;
     ExtensionSystem(const ExtensionSystem&) = delete;
+    ExtensionSystem& operator=(ExtensionSystem&&) = delete;
     ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
     /**
      * Scans a dynamic library file for extensions and adds these extensions to the list of known extensions.
      * @param filename File name of the library
-     * @return true=the file contained at least one extension, false=file could not be opened or didn't contain an extension
+     * @return number of extensions found in the file
      */
-    bool addDynamicLibrary(const std::string& filename);
+    std::size_t addDynamicLibrary(const std::string& filename);
 
     /**
      * Removes all extensions provided by the library from the list of known extensions
@@ -211,7 +191,7 @@ public:
      */
     template <class T>
     std::vector<ExtensionDescription> extensions(std::vector<std::pair<std::string, std::string>> metaDataFilter = {}) const {
-        metaDataFilter.push_back({"interface_name", extension_system::InterfaceName<T>::getString()});
+        metaDataFilter.emplace_back("interface_name", extension_system::InterfaceName<T>::getString());
         return extensions(metaDataFilter);
     }
 
@@ -266,7 +246,10 @@ public:
     template <class T>
     ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const {
         std::unique_lock<std::mutex> lock{_mutex};
-        return findDescriptionUnsafe(extension);
+        const auto                   i = _loaded_extensions.find(extension.get());
+        if (i == _loaded_extensions.end())
+            return {};
+        return i->second;
     }
 
     /**
@@ -298,17 +281,11 @@ public:
 
     void setEnableDebugOutput(bool enable);
 
-    /**
-     * @brief setCheckForUPXCompression
-     * The check is costly and not required most of the time
-     * @param enable
-     */
-    void setCheckForUPXCompression(bool enable);
-
-    bool getCheckForUPXCompression() const;
-
 private:
-    bool addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
+    std::size_t addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
+    std::size_t addExtensions(const std::string& filename, const char* file_content, std::size_t file_length);
+    std::unordered_map<std::string, std::string> parseKeyValue(const std::string& filename, const char* start, const char* end);
+    ExtensionDescription                         parse(const std::string& filename, std::unordered_map<std::string, std::string>&& desc);
 
     ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name, ExtensionVersion version) const;
     ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const;
@@ -325,20 +302,20 @@ private:
                     if (dynlib == nullptr) {
                         dynlib = std::make_shared<DynamicLibrary>(i.first);
                         if (!dynlib->isValid())
-                            _message_handler("_createExtension: " + dynlib->getLastError());
+                            _message_handler("_createExtension: " + dynlib->getError());
                         i.second.dynamic_library = dynlib;
                     }
 
                     if (dynlib == nullptr)
                         continue;
 
-                    const auto func = dynlib->getProcAddress<T*(T*, const char**)>(j.entry_point());
+                    const auto func = dynlib->getProcAddress<T*(T*, const char**)>(j.get("entry_point"));
 
                     if (func != nullptr) {
                         T* ex = func(nullptr, nullptr);
                         if (ex != nullptr) {
                             _loaded_extensions[ex] = j;
-                            // Frees an extension and unloads the containing library, if no references to that library are present.
+                            // Frees an extension and unloads the containing library, if no references to that library exist anymore.
                             std::weak_ptr<bool> alive = _extension_system_alive;
                             return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T* obj) {
                                 func(obj, nullptr);
@@ -355,20 +332,12 @@ private:
         return {};
     }
 
-    template <class T>
-    ExtensionDescription findDescriptionUnsafe(const std::shared_ptr<T>& extension) const {
-        const auto i = _loaded_extensions.find(extension.get());
-        if (i == _loaded_extensions.end())
-            return {};
-        return i->second;
-    }
-
     struct LibraryInfo final {
         LibraryInfo()                   = default;
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
         LibraryInfo& operator=(LibraryInfo&&) = default;
-        LibraryInfo(const std::vector<ExtensionDescription>& ex)
+        explicit LibraryInfo(const std::vector<ExtensionDescription>& ex)
             : extensions{ex} {}
 
         std::weak_ptr<DynamicLibrary>     dynamic_library;
@@ -377,9 +346,8 @@ private:
 
     void debugMessage(const std::string& msg);
 
-    bool _verify_compiler           = true;
-    bool _debug_output              = false;
-    bool _check_for_upx_compression = false;
+    bool _verify_compiler = true;
+    bool _debug_output    = false;
 
     std::function<void(const std::string&)> _message_handler;
     // used to avoid removing extensions while destroying them from the loadedExtensions map
@@ -390,10 +358,8 @@ private:
 
     // The following strings are used to find the exported classes in the dll/so files
     // The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.
-    const std::string desc_base                   = "EXTENSION_SYSTEM_METADATA_DESCRIPTION_";
-    const std::string desc_start                  = ExtensionSystem::desc_base + "START";
-    const std::string desc_end                    = ExtensionSystem::desc_base + "END";
-    const std::string upx_string                  = "UPX";
-    const std::string upx_exclamation_mark_string = ExtensionSystem::upx_string + "!";
+    const std::string desc_base  = "EXTENSION_SYSTEM_METADATA_DESCRIPTION_";
+    const std::string desc_start = ExtensionSystem::desc_base + "START";
+    const std::string desc_end   = ExtensionSystem::desc_base + "END";
 };
 }

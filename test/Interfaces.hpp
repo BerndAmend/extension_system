@@ -14,7 +14,7 @@
 class IExt1 {
 public:
     virtual int test1() = 0;
-    virtual ~IExt1() {}
+    virtual ~IExt1()    = default;
 };
 EXTENSION_SYSTEM_INTERFACE(IExt1)
 
@@ -22,7 +22,7 @@ namespace extension_system {
 class IExt2 {
 public:
     virtual std::string test2() = 0;
-    virtual ~IExt2() {}
+    virtual ~IExt2()            = default;
 };
 }
 

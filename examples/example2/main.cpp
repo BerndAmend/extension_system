@@ -23,10 +23,13 @@ int main() {
                   << "Target: " << extension["target_product"] << "\n";
     }
 
-    // create extension
-    auto e1 = extension_system.createExtension<Interface2>("Example2Extension");
-    if (e1 != nullptr)
-        e1->test1();
-    std::cout << "Done.\n";
+    auto e = extension_system.createExtension<Interface2>("Example2Extension");
+
+    if (e == nullptr) {
+        std::cout << "couldn't load plugin\n";
+        return -1;
+    }
+
+    std::cout << "output: " << e->test2() << "\n";
     return 0;
 }

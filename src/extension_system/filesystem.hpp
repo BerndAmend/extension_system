@@ -62,25 +62,14 @@ namespace extension_system {
 namespace filesystem {
 class path final {
 public:
-    path() = default;
-    path(const path& p) {
-        *this = p._pathname;
-    }
-    path(const char* p) {
-        *this = std::string(p);
-    }
-    path(const std::string& p) {
-        *this = p;
-    }
+    path(std::string p)
+        : _pathname{std::move(p)} {}
 
-    path& operator=(const path& p) {
-        *this = p._pathname;
-        return *this;
-    }
-    path& operator=(const std::string& p) {
-        _pathname = p;
-        return *this;
-    }
+    path()              = default;
+    path(path&& p)      = default;
+    path(const path& p) = default;
+    path& operator=(const path& p) = default;
+    path& operator=(path&& p) = default;
 
     const std::string string() const {
         return _pathname;

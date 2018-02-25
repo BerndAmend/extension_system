@@ -43,7 +43,7 @@ inline std::string getRealFilename(const std::string& filename) {
 #ifdef EXTENSION_SYSTEM_USE_BOOST
 using StringSearch = boost::algorithm::boyer_moore<const char*>;
 #else
-class StringSearch {
+class StringSearch final {
 public:
     StringSearch(const char* pattern_first, const char* pattern_last)
         : _pattern_first(pattern_first)
@@ -77,31 +77,31 @@ ExtensionSystem::ExtensionSystem()
     : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
     , _extension_system_alive(std::make_shared<bool>(true)) {}
 
-bool ExtensionSystem::addDynamicLibrary(const std::string& filename) {
+std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock{_mutex};
     std::vector<char>            buffer;
     return addDynamicLibrary(filename, buffer);
 }
 
-bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector<char>& buffer) {
+std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector<char>& buffer) {
     debugMessage("check file " + filename);
     const std::string file_path = getRealFilename(filename);
 
     if (file_path.empty()) {
         _message_handler("addDynamicLibrary: neither " + filename + " nor " + filename + DynamicLibrary::fileExtension() + " exist.");
-        return false;
+        return 0;
     }
 
     if (filesystem::is_directory(file_path)) {
         _message_handler("addDynamicLibrary: doesn't support adding directories directory=" + filename);
-        return false;
+        return 0;
     }
 
     auto already_loaded = _known_extensions.find(file_path);
 
     // don't reload library, if there are already references
     if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired())
-        return false;
+        return 0;
 
     std::size_t file_length = 0;
     const char* file_content{};
@@ -117,14 +117,14 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
         fm = boost::interprocess::file_mapping(file_path.c_str(), mode);
     } catch (const boost::interprocess::interprocess_exception& e) {
         _message_handler(std::string("file_mapping failed ") + e.what());
-        return false;
+        return 0;
     }
 
     try {
         file = boost::interprocess::mapped_region(fm, mode, 0, 0);
     } catch (const boost::interprocess::interprocess_exception& e) {
         _message_handler(std::string("mapped_region failed ") + e.what());
-        return false;
+        return 0;
     }
 
     file_length  = file.get_size();
@@ -136,20 +136,17 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
 
         if (!file) {
             _message_handler("couldn't open file");
-            return false;
+            return 0;
         }
 
-        // TODO(bernd): narrow_cast?
+        if (file.tellg() <= 0) {
+            _message_handler("invalid or unknown file size");
+            return 0;
+        }
+
         file_length = static_cast<std::size_t>(file.tellg());
-
-        if (file_length <= 0) {
-            _message_handler("invalid file size");
-            return false;
-        }
-
         file.seekg(0, std::ios::beg);
 
-        // TODO(bernd): use a narrow_cast
         if (buffer.size() < static_cast<std::size_t>(file_length))
             buffer.resize(static_cast<std::size_t>(file_length));
 
@@ -159,140 +156,148 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
     }
 #endif
 
+    return addExtensions(filename, file_content, file_length);
+}
+
+std::size_t ExtensionSystem::addExtensions(const std::string& filename, const char* file_content, std::size_t file_length) {
+    StringSearch search_start(desc_start.c_str(), desc_start.c_str() + desc_start.length());
+    StringSearch search_end{desc_end.c_str(), desc_end.c_str() + desc_end.length()};
+
+    auto        file_path = getRealFilename(filename);
+    LibraryInfo info;
+
     const char* file_end = file_content + file_length;
+    for (const char* current = getFirstFromPair(search_start(file_content, file_end)); current != file_end;
+         current             = getFirstFromPair(search_start(current, file_end))) {
 
-    const std::string start_string = desc_start;
-    StringSearch      search_start(start_string.c_str(), start_string.c_str() + start_string.length());
+        const char* start = current;
 
-    const char* found = getFirstFromPair(search_start(file_content, file_end));
-
-    if (found == file_end) { // no tag found, skip file
-        if (_check_for_upx_compression) {
-            StringSearch search_upx(upx_string.c_str(), upx_string.c_str() + upx_string.length());
-            StringSearch search_upx_exclamation_mark(upx_exclamation_mark_string.c_str(),
-                                                     upx_exclamation_mark_string.c_str() + upx_exclamation_mark_string.length());
-            // check only for upx if the file didn't contain any tags at all
-            const char* found_upx_exclamation_mark = getFirstFromPair(search_upx_exclamation_mark(file_content, file_end));
-            const char* found_upx                  = getFirstFromPair(search_upx(file_content, file_end));
-
-            if (found_upx != file_end && found_upx_exclamation_mark != file_end && found_upx < found_upx_exclamation_mark)
-                _message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename
-                                 + ", it seems the file is compressed using upx. ");
-        }
-        return false;
-    }
-
-    const std::string end_string = desc_end;
-    StringSearch      search_end{end_string.c_str(), end_string.c_str() + end_string.length()};
-
-    std::vector<std::unordered_map<std::string, std::string>> data;
-
-    while (found != file_end) {
-        const char* start = found;
-
-        // search the end tag
-        found           = getFirstFromPair(search_end(found + 1, file_end));
-        const char* end = found;
+        current         = getFirstFromPair(search_end(current + 1, file_end));
+        const char* end = current;
 
         if (end == file_end) { // end tag not found
             _message_handler("addDynamicLibrary: filename=" + filename + " end tag was missing");
             break;
         }
 
-        // search the next start tag and check if it is interleaved with current section
-        found = getFirstFromPair(search_start(start + 1, file_end));
-
-        if (found < end) {
+        // check if there is a start tag before the end search the next start tag and check if it is interleaved with current section
+        if (getFirstFromPair(search_start(start + 1, end)) < end) {
             _message_handler("addDynamicLibrary: filename=" + filename + " found a start tag before the expected end tag");
             continue;
         }
 
-        bool                                         failed = false;
-        std::unordered_map<std::string, std::string> result;
-        split({start, end - 1}, '\0', [&](const std::string& iter) {
-            std::size_t pos = iter.find('=');
-            if (pos == std::string::npos) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter + "). Ignore entry."); // NOLINT
-                failed = true;
-                return false;
-            }
-            const auto key   = iter.substr(0, pos);
-            const auto value = iter.substr(pos + 1);
-            if (result.find(key) != result.end()) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found. Ignore entry"); // NOLINT
-                failed = true;
-                return false;
-            }
-            result[key] = value;
-            return true;
-        });
+        auto key_value = parseKeyValue(filename, start, end);
 
-        result["library_filename"] = file_path;
+        if (key_value.empty())
+            continue; // empty or invalid export
 
-        if (failed) {
-            // we already printed an error
-        } else if (!result.empty()) {
-            data.push_back(result);
-        } else {
-            _message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
-        }
+        key_value["library_filename"] = file_path;
 
-        found = getFirstFromPair(search_start(end, file_end));
+        auto ext = parse(filename, std::move(key_value));
+
+        if (ext.isValid())
+            info.extensions.push_back(std::move(ext));
     }
 
-    std::vector<ExtensionDescription> extension_list;
-    for (const auto& iter : data) {
-        ExtensionDescription desc{iter};
-        if (!_verify_compiler
-            || (desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION) && desc["compiler"] == EXTENSION_SYSTEM_COMPILER
-                && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR && desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE)) {
+    // still possible if the file has an invalid start tag
+    const auto count = info.extensions.size();
 
-            desc._data.erase(desc_start);
+    if (count == 0)
+        return 0;
 
-            if (desc.name().empty()) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " name was empty or not set");
-                continue;
-            }
+    _known_extensions[file_path] = std::move(info);
 
-            if (desc.interface_name().empty()) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " interface_name was empty or not set");
-                continue;
-            }
+    return count;
+}
 
-            if (desc.entry_point().empty()) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + " entry_point was empty or not set");
-                continue;
-            }
+std::unordered_map<std::string, std::string> ExtensionSystem::parseKeyValue(const std::string& filename, const char* start, const char* end) {
+    std::unordered_map<std::string, std::string> result;
 
-            if (desc.version() == 0) {
-                _message_handler("addDynamicLibrary: filename=" + filename + " name=" + desc.name() + ": version number was invalid or 0");
-                continue;
-            }
+    bool successful = split({start, end - 1}, '\0', [&](const std::string& iter) {
+        std::size_t pos = iter.find('=');
+        if (pos == std::string::npos) {
+            _message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter + "), ignore extension export"); // NOLINT
+            return false;
+        }
+        const auto key   = iter.substr(0, pos);
+        const auto value = iter.substr(pos + 1);
+        if (result.find(key) != result.end()) {
+            _message_handler("addDynamicLibrary: filename=" + filename + " duplicate key (" + key + ") found, ignore extension export"); // NOLINT
+            return false;
+        }
+        result[key] = value;
+        return true;
+    });
 
-            extension_list.push_back(desc);
-        } else {
-            // clang-format off
+    if (successful && result.empty())
+        _message_handler("addDynamicLibrary: filename=" + filename + " metadata description didn't contain any data, ignore it");
+
+    return result;
+}
+
+ExtensionDescription ExtensionSystem::parse(const std::string& filename, std::unordered_map<std::string, std::string>&& desc) {
+    if (_verify_compiler
+        && (desc[desc_start] != EXTENSION_SYSTEM_EXTENSION_API_VERSION_STR || desc["compiler"] != EXTENSION_SYSTEM_COMPILER
+            || desc["compiler_version"] != EXTENSION_SYSTEM_COMPILER_VERSION_STR || desc["build_type"] != EXTENSION_SYSTEM_BUILD_TYPE)) {
+        // clang-format off
             _message_handler("addDynamicLibrary: Ignore file " + filename + ". Compilation options didn't match or were invalid ("
-                             "version="          + desc[desc_start]
+                               "version="           + desc[desc_start]
                              + " compiler="         + desc["compiler"]
                              + " compiler_version=" + desc["compiler_version"]
                              + " build_type="       + desc["build_type"]
-                             + " expected version=" EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
+                             + " expected version=" EXTENSION_SYSTEM_EXTENSION_API_VERSION_STR
                              " compiler="           EXTENSION_SYSTEM_COMPILER
                              " compiler_version="   EXTENSION_SYSTEM_COMPILER_VERSION_STR
                              " build_type="         EXTENSION_SYSTEM_BUILD_TYPE
                              ")");
-            // clang-format on
-        }
+        // clang-format on
+        return {};
     }
 
-    // still possible if the file has an invalid start tag
-    if (extension_list.empty())
-        return false;
+    std::string name;
 
-    // The handling of extensions with same name and version number is currently broken
-    _known_extensions[file_path] = LibraryInfo(extension_list);
-    return true;
+    auto is_invalid = [&](const std::string& str) {
+        auto iter = desc.find(str);
+        if (iter == desc.end()) {
+            _message_handler("addDynamicLibrary: filename=" + filename + " " + name + str + " has to be set"); // NOLINT
+            return true;
+        }
+
+        if (iter->second.empty()) {
+            _message_handler("addDynamicLibrary: filename=" + filename + " " + name + str + " can not be empty"); // NOLINT
+            return true;
+        }
+
+        return false;
+    };
+
+    if (is_invalid("name"))
+        return {};
+
+    name = "name= " + desc.at("name");
+
+    if (is_invalid("interface_name"))
+        return {};
+
+    if (is_invalid("entry_point"))
+        return {};
+
+    if (is_invalid("version"))
+        return {};
+
+    ExtensionVersion version{};
+
+    std::stringstream str{desc.at("version")};
+    str >> version;
+
+    if (str.fail()) {
+        _message_handler("addDynamicLibrary: filename=" + filename + " " + name + " couldn't parse version"); // NOLINT
+        return {};
+    }
+
+    desc.erase(desc_start);
+
+    return ExtensionDescription{std::move(desc), version};
 }
 
 void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
@@ -309,12 +314,11 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
     std::unique_lock<std::mutex> lock{_mutex};
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer](const filesystem::path& p) {
-                                           if (p.extension().string() == DynamicLibrary::fileExtension()) {
+                                           if (p.extension().string() == DynamicLibrary::fileExtension())
                                                addDynamicLibrary(p.string(), buffer);
-                                           } else {
+                                           else
                                                debugMessage("ignore file " + p.string() + " due to wrong fileExtension ("
                                                             + DynamicLibrary::fileExtension() + ")");
-                                           }
                                        },
                                        recursive);
 }
@@ -327,12 +331,11 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension()
-                                               && p.filename().string().compare(0, required_prefix_length, required_prefix) == 0) {
+                                               && p.filename().string().compare(0, required_prefix_length, required_prefix) == 0)
                                                addDynamicLibrary(p.string(), buffer);
-                                           } else {
+                                           else
                                                debugMessage("ignore file " + p.string() + " either due to wrong required_prefix or wrong fileExtension ("
                                                             + p.extension().string() + ")");
-                                           }
                                        },
                                        recursive);
 }
@@ -352,7 +355,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
             bool add_extension = true;
 
             for (const auto& filter : filter_map) {
-                auto extended = j._data;
+                auto extended = j.data();
 
                 // search extended data if filtered metadata is present
                 auto ext_iter = extended.find(filter.first);
@@ -427,12 +430,4 @@ void ExtensionSystem::setVerifyCompiler(bool enable) {
 
 void ExtensionSystem::setEnableDebugOutput(bool enable) {
     _debug_output = enable;
-}
-
-void ExtensionSystem::setCheckForUPXCompression(bool enable) {
-    _check_for_upx_compression = enable;
-}
-
-bool ExtensionSystem::getCheckForUPXCompression() const {
-    return _check_for_upx_compression;
 }
