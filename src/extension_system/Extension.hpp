@@ -8,13 +8,55 @@
 */
 #pragma once
 
-#include <extension_system/macros.hpp>
-
 #define EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
 
 #define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key, value) key "=" value "\0"
 
+#ifdef _WIN32
+#define EXTENSION_SYSTEM_EXPORT __declspec(dllexport)
+#define EXTENSION_SYSTEM_CDECL __cdecl
+#else
+#define EXTENSION_SYSTEM_EXPORT
+#define EXTENSION_SYSTEM_CDECL
+#endif
+
+#ifdef NDEBUG
+#ifdef _DEBUG
+#error _DEBUG and NDEBUG are defined, only one of them should be defined
+#endif
+#define EXTENSION_SYSTEM_BUILD_TYPE "release"
+#else
+#define EXTENSION_SYSTEM_BUILD_TYPE "debug"
+#endif
+
+#define EXTENSION_SYSTEM_STR_HELPER(x) #x
+#define EXTENSION_SYSTEM_MACRO_EXPANSION_HELPER(x) x
+
+#define EXTENSION_SYSTEM_STR(x) EXTENSION_SYSTEM_STR_HELPER(x)
+
+#define EXTENSION_SYSTEM_CONCAT_HELPER2(a, b) a##b
+#define EXTENSION_SYSTEM_CONCAT_HELPER1(a, b) EXTENSION_SYSTEM_CONCAT_HELPER2(a, b)
+#define EXTENSION_SYSTEM_CONCAT(a, b) \
+    EXTENSION_SYSTEM_CONCAT_HELPER1(EXTENSION_SYSTEM_MACRO_EXPANSION_HELPER(a), EXTENSION_SYSTEM_MACRO_EXPANSION_HELPER(b))
+
+#define EXTENSION_SYSTEM_COMPILER_STR_MSVC "msvc"
+#define EXTENSION_SYSTEM_COMPILER_STR_CLANG "clang"
+#define EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS "g++"
+
 // clang-format off
+#if defined(_MSC_VER)
+    #define EXTENSION_SYSTEM_COMPILER EXTENSION_SYSTEM_COMPILER_STR_MSVC
+    #define EXTENSION_SYSTEM_COMPILER_VERSION_STR EXTENSION_SYSTEM_STR(_MSC_FULL_VER)
+#elif defined(__GNUC__)
+    #if defined(__clang__)
+        #define EXTENSION_SYSTEM_COMPILER EXTENSION_SYSTEM_COMPILER_STR_CLANG
+        #define EXTENSION_SYSTEM_COMPILER_VERSION_STR __VERSION__
+    #else
+        #define EXTENSION_SYSTEM_COMPILER EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS
+        #define EXTENSION_SYSTEM_COMPILER_VERSION_STR __VERSION__
+    #endif
+#endif
+
 
 /**
  * You have to pass a fully qualified interface name (_interface).

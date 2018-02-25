@@ -2,8 +2,8 @@
 
 ## Overview
 
-Extension System is a library to allow programmers to efficiently extend their programmes (plugin system).
-Extension System is highliy efficient and can deal with hundreds or thousands of extensions. In difference to other plugin systems Extension System **does not** load the extension libraries while scanning for extensions. Extension System parses the shared libraries and searches for extensions within them.
+Extension System is a library to allow programmers to efficiently extend their programs (plugin system).
+Extension System is highly efficient and can deal with hundreds or thousands of extensions. In difference to other plugin systems Extension System **does not** load the extension libraries while scanning for extensions. Extension System parses the shared libraries and searches for extensions within them.
 
 During scanning for extension, following metadata is extracted for each extension:
 
@@ -31,7 +31,13 @@ or interface, name and specific version
 If no version is given, the highest available version will be instantiated.
 When an extension is instantiated, the related shared library is loaded. Extension system tracks references to shared libraries (how many extensions from this library are currently alive). If no reference is left the shared library will automatically be unloaded.
 
+### Supported Platforms
 
+* Linux using GCC >=4.8
+* Linux using Clang/LLVM >= 3.4
+* Windows using Visual Studio >=2015
+* Windows using Mingw-w64 >=4.8
+* OS X using Apple LLVM version 9.0.0
 
 ### User-specific metadata
 While developing extensions using Extension System, a user is able to export extension-specific metadata.
@@ -99,7 +105,7 @@ main.cpp
 int main() {
     extension_system::ExtensionSystem extensionSystem;
     extensionSystem.searchDirectory("./");
-    std::shared_ptr<Interface1> e1 = extensionSystem.createExtension<Interface1>("Extension1");
+    auto e1 = extensionSystem.createExtension<Interface1>("Extension1");
     if(e1 != nullptr)
         e1->test1();
     std::cout<<"Done."<<std::endl;

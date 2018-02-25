@@ -8,17 +8,29 @@
 */
 #pragma once
 
-#include <extension_system/macros.hpp>
-
 #include <string>
 #include <vector>
 #include <functional>
 
-#include <extension_system/string.hpp>
+#include "string.hpp"
+
+#ifdef _MSC_VER
+#define EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+#endif
+
+// g++ >=7 has experimental filesystem support
+// sadly the implementation is by far slower than our simple posix wrapper
+// I verified that the function forEachFileInDirectory behaves identical
+// for both implementations (at least on linux)
+// in order to work the linker option -lstdc++fs is required
+// TODO: investigate why std::experimental is so slow
+//#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 7
+//#define EXTENSION_SYSTEM_USE_STD_FILESYSTEM
+//#endif
 
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 // clang-format off
-#if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
+#if defined(_MSC_VER) && _MSC_VER >= 1700
 #include <filesystem>
 #elif __has_include(<filesystem>)
 #include <filesystem>
@@ -28,8 +40,8 @@
 
 namespace extension_system {
 namespace filesystem {
-#if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
-#if EXTENSION_SYSTEM_COMPILER_VERSION < 1912
+#if defined(_MSC_VER) && _MSC_VER >= 1700
+#if _MSC_VER < 1912
 using namespace std::tr2::sys;
 #else
 using namespace std::experimental::filesystem;
@@ -80,7 +92,7 @@ public:
 
     path filename() const {
         path result;
-        split(_pathname, "/", [&](const std::string& str) {
+        split(_pathname, '/', [&](const std::string& str) {
             result = str;
             return true;
         });
@@ -90,10 +102,10 @@ public:
     path extension() const {
         const auto name = filename().string();
         if (name == "." || name == "..")
-            return path();
+            return {};
         const auto pos = name.find_last_of('.');
         if (pos == std::string::npos)
-            return path();
+            return {};
         return name.substr(pos);
     }
 

@@ -30,13 +30,11 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-        # disable some annoying compiler warnings
-        add_compile_options(/wd4275) # disable warning C4275: non dll-interface x used as base for dll-interface y
-        add_compile_options(/wd4251) # disable warning C4251: x needs to have dll-interface to be used by clients of y
-        add_compile_options(/wd4068) # disable warning C4068: unknown pragma
-
         # enable additional compiler warnings
         add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14706)
+
+        # thread warnings as errors
+        add_compile_options(/WX)
     else()
         message(FATAL_ERROR "Unsupported or unknown compiler ${CMAKE_CXX_COMPILER_ID}")
     endif()
@@ -47,28 +45,20 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
         add_compile_options(-foptimize-sibling-calls)
-        add_compile_options(-Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings -Wenum-compare
-            -Wno-conversion-null -Werror=return-type)
+        add_compile_options(-Wall -Wextra -Wwrite-strings -Wenum-compare -Werror)
         add_compile_options($<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2>)
 
-        if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now -pie")
 
-            set(EXTENSION_SYSTEM_SANITIZE "" CACHE STRING "Sanitizer not all options are available in all compiler versions")
+            set(EXTENSION_SYSTEM_SANITIZE "none" CACHE STRING "Sanitizer not all options are available in all compiler versions")
             set_property(CACHE EXTENSION_SYSTEM_SANITIZE PROPERTY STRINGS "" none address memory thread undefined leak)
-            if(NOT "${EXTENSION_SYSTEM_SANITIZE}" STREQUAL "")
+            if(NOT EXTENSION_SYSTEM_SANITIZE STREQUAL "none")
                 add_compile_options(-fsanitize=${EXTENSION_SYSTEM_SANITIZE} -fno-omit-frame-pointer)
+                link_libraries(-fsanitize=${EXTENSION_SYSTEM_SANITIZE})
             endif()
         endif()
     endif()
-
-    # detect android
-    include(CheckCXXSourceCompiles)
-    CHECK_CXX_SOURCE_COMPILES("
-        #ifndef __ANDROID__
-            #error Android
-        #endif
-    " EXTENSION_SYSTEM_ANDROID)
 
     find_program(
         CLANG_TIDY_EXE
@@ -83,7 +73,6 @@ endif()
 
 # library
 set(EXTENSION_SYSTEM_PUBLIC_HEADERS
-                        src/extension_system/macros.hpp
                         src/extension_system/Extension.hpp
                         src/extension_system/DynamicLibrary.hpp
                         src/extension_system/ExtensionSystem.hpp
@@ -146,7 +135,7 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
     add_executable(extension_system_example2 examples/example2/main.cpp examples/example2/Interface.hpp)
     target_link_libraries(extension_system_example2 extension_system)
 
-    if(EXTENSION_SYSTEM_COMPILER_MSVC)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         set_target_properties(extension_system PROPERTIES DEBUG_POSTFIX d)
         set_target_properties(extension_system_test_lib PROPERTIES DEBUG_POSTFIX d)
         set_target_properties(extension_system_test PROPERTIES DEBUG_POSTFIX d)
@@ -156,6 +145,13 @@ if(EXTENSION_SYSTEM_IS_STANDALONE)
         set_target_properties(extension_system_example2 PROPERTIES DEBUG_POSTFIX d)
     endif()
 
+    # detect android
+    include(CheckCXXSourceCompiles)
+    CHECK_CXX_SOURCE_COMPILES("
+        #ifndef __ANDROID__
+            #error Android
+        #endif
+    " EXTENSION_SYSTEM_ANDROID)
     if(EXTENSION_SYSTEM_ANDROID)
         target_link_libraries(extension_system_test_lib gnustl_shared)
         target_link_libraries(extension_system_test gnustl_shared)

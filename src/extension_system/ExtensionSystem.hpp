@@ -15,9 +15,8 @@
 #include <mutex>
 #include <functional>
 
-#include <extension_system/macros.hpp>
-#include <extension_system/Extension.hpp>
-#include <extension_system/DynamicLibrary.hpp>
+#include "Extension.hpp"
+#include "DynamicLibrary.hpp"
 
 namespace extension_system {
 
@@ -35,7 +34,7 @@ struct ExtensionDescription final {
 
     ExtensionDescription() {}
     ExtensionDescription(const std::unordered_map<std::string, std::string>& data)
-        : _data(data) {}
+        : _data{data} {}
 
     /**
      * Returns if the extension is valid. An extension is invalid if the describing data structure was not found within the shared module
@@ -57,7 +56,7 @@ struct ExtensionDescription final {
      * @return the version or 0 if the value couldn't be parsed or didn't exist
      */
     ExtensionVersion version() const {
-        std::stringstream str(get("version"));
+        std::stringstream str{get("version")};
         ExtensionVersion  result{};
         str >> result;
         return result;
@@ -108,9 +107,8 @@ struct ExtensionDescription final {
     std::string get(const std::string& key) const {
         auto iter = _data.find(key);
         if (iter == _data.end())
-            return std::string();
-        else
-            return iter->second;
+            return {};
+        return iter->second;
     }
 
     /**
@@ -226,11 +224,11 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name, ExtensionVersion version) {
-        std::unique_lock<std::mutex> lock(_mutex);
+        std::unique_lock<std::mutex> lock{_mutex};
         auto                         desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name, version);
         if (!desc.isValid())
             return {};
-        return _createExtension<T>(desc);
+        return createExtensionUnsafe<T>(desc);
     }
 
     /**
@@ -241,11 +239,11 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name) {
-        std::unique_lock<std::mutex> lock(_mutex);
+        std::unique_lock<std::mutex> lock{_mutex};
         const auto                   desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name);
         if (!desc.isValid())
             return {};
-        return _createExtension<T>(desc);
+        return createExtensionUnsafe<T>(desc);
     }
 
     /**
@@ -256,8 +254,8 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const ExtensionDescription& desc) {
-        std::unique_lock<std::mutex> lock(_mutex);
-        return _createExtension<T>(desc);
+        std::unique_lock<std::mutex> lock{_mutex};
+        return createExtensionUnsafe<T>(desc);
     }
 
     /**
@@ -267,7 +265,7 @@ public:
      */
     template <class T>
     ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const {
-        std::unique_lock<std::mutex> lock(_mutex);
+        std::unique_lock<std::mutex> lock{_mutex};
         return findDescriptionUnsafe(extension);
     }
 
@@ -305,13 +303,9 @@ public:
      * The check is costly and not required most of the time
      * @param enable
      */
-    void setCheckForUPXCompression(bool enable) {
-        _check_for_upx_compression = enable;
-    }
+    void setCheckForUPXCompression(bool enable);
 
-    bool getCheckForUPXCompression() const {
-        return _check_for_upx_compression;
-    }
+    bool getCheckForUPXCompression() const;
 
 private:
     bool addDynamicLibrary(const std::string& filename, std::vector<char>& buffer);
@@ -320,14 +314,14 @@ private:
     ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const;
 
     template <class T>
-    std::shared_ptr<T> _createExtension(const ExtensionDescription& desc) {
+    std::shared_ptr<T> createExtensionUnsafe(const ExtensionDescription& desc) {
         if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
             return {};
 
         for (auto& i : _known_extensions) {
             for (auto& j : i.second.extensions) {
                 if (j == desc) {
-                    std::shared_ptr<DynamicLibrary> dynlib = i.second.dynamic_library.lock();
+                    auto dynlib = i.second.dynamic_library.lock();
                     if (dynlib == nullptr) {
                         dynlib = std::make_shared<DynamicLibrary>(i.first);
                         if (!dynlib->isValid())
@@ -349,7 +343,7 @@ private:
                             return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T* obj) {
                                 func(obj, nullptr);
                                 if (!alive.expired()) {
-                                    std::unique_lock<std::mutex> lock(_mutex);
+                                    std::unique_lock<std::mutex> lock{_mutex};
                                     _loaded_extensions.erase(obj);
                                 }
                             });
@@ -364,19 +358,18 @@ private:
     template <class T>
     ExtensionDescription findDescriptionUnsafe(const std::shared_ptr<T>& extension) const {
         const auto i = _loaded_extensions.find(extension.get());
-        if (i != _loaded_extensions.end())
-            return i->second;
-        else
+        if (i == _loaded_extensions.end())
             return {};
+        return i->second;
     }
 
     struct LibraryInfo final {
-        LibraryInfo() {}
+        LibraryInfo()                   = default;
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
         LibraryInfo& operator=(LibraryInfo&&) = default;
         LibraryInfo(const std::vector<ExtensionDescription>& ex)
-            : extensions(ex) {}
+            : extensions{ex} {}
 
         std::weak_ptr<DynamicLibrary>     dynamic_library;
         std::vector<ExtensionDescription> extensions;

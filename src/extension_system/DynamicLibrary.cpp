@@ -6,8 +6,7 @@
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
 */
-#include <extension_system/DynamicLibrary.hpp>
-#include <extension_system/macros.hpp>
+#include "DynamicLibrary.hpp"
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
