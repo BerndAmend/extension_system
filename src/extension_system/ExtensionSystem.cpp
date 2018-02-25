@@ -100,12 +100,11 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
     auto already_loaded = _known_extensions.find(file_path);
 
     // don't reload library, if there are already references to one contained extension
-    if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired()) {
+    if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired())
         return false;
-    }
 
-    std::size_t file_length  = 0;
-    const char* file_content = nullptr;
+    std::size_t file_length = 0;
+    const char* file_content{};
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST
     (void)buffer;
@@ -140,6 +139,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
             return false;
         }
 
+        // TODO(bernd): narrow_cast?
         file_length = static_cast<std::size_t>(file.tellg());
 
         if (file_length <= 0) {
@@ -149,9 +149,9 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
 
         file.seekg(0, std::ios::beg);
 
-        if (buffer.size() < static_cast<unsigned int>(file_length)) {
-            buffer.resize(static_cast<unsigned int>(file_length));
-        }
+        // TODO(bernd): use a narrow_cast
+        if (buffer.size() < static_cast<std::size_t>(file_length))
+            buffer.resize(static_cast<std::size_t>(file_length));
 
         file_content = buffer.data();
 
@@ -175,10 +175,9 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
             const char* found_upx_exclamation_mark = getFirstFromPair(search_upx_exclamation_mark(file_content, file_end));
             const char* found_upx                  = getFirstFromPair(search_upx(file_content, file_end));
 
-            if (found_upx != file_end && found_upx_exclamation_mark != file_end && found_upx < found_upx_exclamation_mark) {
+            if (found_upx != file_end && found_upx_exclamation_mark != file_end && found_upx < found_upx_exclamation_mark)
                 _message_handler("addDynamicLibrary: Couldn't find any extensions in file " + filename
                                  + ", it seems the file is compressed using upx. ");
-            }
         }
         return false;
     }
@@ -298,10 +297,9 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
         }
     }
 
-    if (extension_list.empty()) {
-        // still possible if the file has an invalid start tag
+    // still possible if the file has an invalid start tag
+    if (extension_list.empty())
         return false;
-    }
 
     // The handling of extensions with same name and version number is currently broken
     _known_extensions[file_path] = LibraryInfo(extension_list);
@@ -312,9 +310,8 @@ void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock(_mutex);
     auto                         real_filename = getRealFilename(filename);
     auto                         iter          = _known_extensions.find(real_filename);
-    if (iter != _known_extensions.end()) {
+    if (iter != _known_extensions.end())
         _known_extensions.erase(iter);
-    }
 }
 
 void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
@@ -354,9 +351,8 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
 std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const {
     std::unordered_map<std::string, std::unordered_set<std::string>> filter_map;
 
-    for (const auto& f : metaDataFilter) {
+    for (const auto& f : metaDataFilter)
         filter_map[f.first].insert(f.second);
-    }
 
     std::unique_lock<std::mutex>      lock(_mutex);
     std::vector<ExtensionDescription> result;
@@ -383,9 +379,8 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
                     break;
                 }
             }
-            if (add_extension) {
+            if (add_extension)
                 result.push_back(j);
-            }
         }
     }
 
@@ -396,30 +391,26 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
     std::unique_lock<std::mutex>      lock(_mutex);
     std::vector<ExtensionDescription> list;
 
-    for (const auto& i : _known_extensions) {
-        for (const auto& j : i.second.extensions) {
+    for (const auto& i : _known_extensions)
+        for (const auto& j : i.second.extensions)
             list.push_back(j);
-        }
-    }
 
     return list;
 }
 
-ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name, unsigned int version) const {
-    for (const auto& i : _known_extensions) {
-        for (const auto& j : i.second.extensions) {
-            if (j.interface_name() == interface_name && j.name() == name && j.version() == version) {
+ExtensionDescription
+ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name, ExtensionVersion version) const {
+    for (const auto& i : _known_extensions)
+        for (const auto& j : i.second.extensions)
+            if (j.interface_name() == interface_name && j.name() == name && j.version() == version)
                 return j;
-            }
-        }
-    }
 
-    return ExtensionDescription();
+    return {};
 }
 
 ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const {
-    unsigned int                highest_version = 0;
-    const ExtensionDescription* desc            = nullptr;
+    ExtensionVersion            highest_version{};
+    const ExtensionDescription* desc{};
 
     for (const auto& i : _known_extensions) {
         for (const auto& j : i.second.extensions) {
@@ -430,13 +421,15 @@ ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& i
         }
     }
 
-    return desc != nullptr ? *desc : ExtensionDescription();
+    if (desc == nullptr)
+        return {};
+
+    return *desc;
 }
 
 void ExtensionSystem::debugMessage(const std::string& msg) {
-    if (_debug_output) {
+    if (_debug_output)
         _message_handler(msg);
-    }
 }
 
 void ExtensionSystem::setVerifyCompiler(bool enable) {

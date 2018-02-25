@@ -12,8 +12,7 @@
 #include <functional>
 
 namespace extension_system {
-
-inline static void split(const std::string& s, const std::string& delimiter, const std::function<bool(const std::string&)>& func) {
+inline void split(const std::string& s, const std::string& delimiter, const std::function<bool(const std::string&)>& func) {
     std::size_t pos      = 0;
     std::size_t last_pos = 0;
     do {

@@ -36,9 +36,8 @@ DynamicLibrary::DynamicLibrary(const std::string& filename)
 #else
     _handle = dlopen(filename.c_str(), RTLD_LAZY);
 #endif
-    if (_handle == nullptr) {
+    if (_handle == nullptr)
         setLastError();
-    }
 }
 
 DynamicLibrary::~DynamicLibrary() {
@@ -60,9 +59,8 @@ const void* DynamicLibrary::getHandle() const {
 }
 
 void* DynamicLibrary::getProcAddress(const std::string& name) {
-    if (!isValid()) {
+    if (!isValid())
         return nullptr;
-    }
 
     void* func;
 #ifdef _WIN32
@@ -72,9 +70,8 @@ void* DynamicLibrary::getProcAddress(const std::string& name) {
 #else
     func = dlsym(_handle, name.c_str());
 #endif
-    if (func == nullptr) {
+    if (func == nullptr)
         setLastError();
-    }
     return func;
 }
 

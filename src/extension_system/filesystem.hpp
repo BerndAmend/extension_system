@@ -48,7 +48,7 @@ void forEachFileInDirectory(const path& root, const std::function<void(const pat
 #else
 namespace extension_system {
 namespace filesystem {
-class path {
+class path final {
 public:
     path() = default;
     path(const path& p) {
