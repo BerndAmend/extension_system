@@ -119,4 +119,4 @@ int main() {
 * Extension System is unable to check extension's dependencies
 
 ## License
-Extension System is licensed under [BSL 1.0 (Boost Software License 1.0)](LICENSE_1_0.txt/)
+Extension System is licensed under [BSL 1.0 (Boost Software License 1.0)](LICENSE_1_0.txt)
