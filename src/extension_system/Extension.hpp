@@ -8,10 +8,6 @@
 */
 #pragma once
 
-#define EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
-
-#define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key, value) key "=" value "\0"
-
 #ifdef _WIN32
 #define EXTENSION_SYSTEM_EXPORT __declspec(dllexport)
 #define EXTENSION_SYSTEM_CDECL __cdecl
@@ -57,6 +53,10 @@
     #endif
 #endif
 
+#define EXTENSION_SYSTEM_EXTENSION_API_VERSION 1
+#define EXTENSION_SYSTEM_EXTENSION_API_VERSION_STR EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
+
+#define EXTENSION_SYSTEM_DESCRIPTION_ENTRY(key, value) key "=" value "\0"
 
 /**
  * You have to pass a fully qualified interface name (_interface).
@@ -66,7 +66,7 @@
     extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *, const char **); \
     extern "C" EXTENSION_SYSTEM_EXPORT _interface* EXTENSION_SYSTEM_CDECL _function_name(_interface *freeExtension, const char **data) { \
         const char *extension_system_export = \
-            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_START", EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)) \
+            EXTENSION_SYSTEM_DESCRIPTION_ENTRY("EXTENSION_SYSTEM_METADATA_DESCRIPTION" "_START", EXTENSION_SYSTEM_EXTENSION_API_VERSION_STR) \
             EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler", EXTENSION_SYSTEM_COMPILER) \
             EXTENSION_SYSTEM_DESCRIPTION_ENTRY("compiler_version", EXTENSION_SYSTEM_COMPILER_VERSION_STR) \
             EXTENSION_SYSTEM_DESCRIPTION_ENTRY("build_type", EXTENSION_SYSTEM_BUILD_TYPE) \
@@ -86,9 +86,7 @@
         return new _classname;\
     }
 
-/**
- * Helper macro to make extension export more readable
- */
+/// Helper macro to make extension export more readable
 #define EXTENSION_SYSTEM_NO_USER_DATA ""
 
 /**

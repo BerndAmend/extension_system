@@ -13,6 +13,8 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_LINK_WHAT_YOU_USE ON)
+
         add_compile_options(-Wnon-virtual-dtor
                             -Woverloaded-virtual
                             $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-pedantic>
@@ -69,6 +71,20 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
         set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
     endif()
+
+# Does not work well will QtCreator
+option(EXTENSION_SYSTEM_ENABLE_CPPCHECK "" OFF)
+if(EXTENSION_SYSTEM_ENABLE_CPPCHECK)
+    find_program(
+        CPPCHECK_EXE
+        NAMES "cppcheck"
+        DOC "Path to cppcheck executable"
+        )
+    if(CPPCHECK_EXE)
+        message(STATUS "Enable cppcheck: ${CPPCHECK_EXE}")
+        set(CMAKE_CXX_CPPCHECK "${CPPCHECK_EXE}" "--enable=all" "--quiet")
+    endif()
+endif()
 endif()
 
 # library

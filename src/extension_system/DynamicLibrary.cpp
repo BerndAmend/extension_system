@@ -39,7 +39,7 @@ DynamicLibrary::DynamicLibrary(const std::string& filename)
         setLastError();
 }
 
-DynamicLibrary::~DynamicLibrary() {
+DynamicLibrary::~DynamicLibrary() noexcept {
     if (isValid()) {
 #ifdef _WIN32
         FreeLibrary(_handle);
@@ -96,6 +96,6 @@ void DynamicLibrary::setLastError() {
 #endif
 }
 
-std::string DynamicLibrary::getLastError() const {
+std::string DynamicLibrary::getError() const {
     return _last_error;
 }

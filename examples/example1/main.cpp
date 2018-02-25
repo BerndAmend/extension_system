@@ -13,9 +13,11 @@
 int main() {
     extension_system::ExtensionSystem extension_system;
     extension_system.searchDirectory(".");
-    auto e1 = extension_system.createExtension<Interface1>("Example1Extension");
-    if (e1 != nullptr)
-        e1->test1();
-    std::cout << "Done.\n";
+    auto e = extension_system.createExtension<Interface1>("Example1Extension");
+    if (e == nullptr) {
+        std::cout << "couldn't load plugin\n";
+        return -1;
+    }
+    std::cout << "output: " << e->test1() << "\n";
     return 0;
 }

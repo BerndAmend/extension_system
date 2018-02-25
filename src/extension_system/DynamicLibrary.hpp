@@ -15,10 +15,13 @@ namespace extension_system {
 
 class DynamicLibrary final {
 public:
-    DynamicLibrary(const std::string& filename);
+    DynamicLibrary() = default;
+    explicit DynamicLibrary(const std::string& filename);
+    DynamicLibrary(DynamicLibrary&&)      = default;
     DynamicLibrary(const DynamicLibrary&) = delete;
-    DynamicLibrary& operator=(const DynamicLibrary&) = delete;
-    ~DynamicLibrary();
+    DynamicLibrary& operator=(DynamicLibrary&&) = default;
+    DynamicLibrary& operator=(const DynamicLibrary&) noexcept = delete;
+    ~DynamicLibrary() noexcept;
 
     std::string getFilename() const;
 
@@ -35,12 +38,12 @@ public:
 
     bool isValid() const;
 
-    std::string getLastError() const;
+    std::string getError() const;
 
 private:
-    const std::string _filename;
-    void*             _handle = nullptr;
-    std::string       _last_error;
+    std::string _filename;
+    void*       _handle = nullptr;
+    std::string _last_error;
 
     void setLastError();
 };
