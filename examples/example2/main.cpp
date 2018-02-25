@@ -24,7 +24,7 @@ int main() {
     }
 
     // create extension
-    std::shared_ptr<Interface2> e1 = extension_system.createExtension<Interface2>("Example2Extension");
+    auto e1 = extension_system.createExtension<Interface2>("Example2Extension");
     if (e1 != nullptr)
         e1->test1();
     std::cout << "Done.\n";

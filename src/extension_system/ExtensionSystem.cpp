@@ -6,16 +6,18 @@
         (See accompanying file LICENSE_1_0.txt or copy at
         http://www.boost.org/LICENSE_1_0.txt)
 */
-#include <extension_system/ExtensionSystem.hpp>
+#include "ExtensionSystem.hpp"
 
+#include "filesystem.hpp"
+#include "string.hpp"
 #include <algorithm>
-#include <extension_system/filesystem.hpp>
-#include <extension_system/string.hpp>
 #include <iostream>
 #include <unordered_set>
 
 #ifdef EXTENSION_SYSTEM_USE_BOOST
+#ifdef _WIN32
 #define BOOST_DATE_TIME_NO_LIB
+#endif
 #include <boost/algorithm/searching/boyer_moore.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
@@ -27,14 +29,12 @@ using namespace extension_system;
 
 namespace {
 inline std::string getRealFilename(const std::string& filename) {
-    filesystem::path filen(filename);
+    filesystem::path filen{filename};
 
     if (!filesystem::exists(filen)) { // check if the file exists
-        if (filesystem::exists(filesystem::path(filename + DynamicLibrary::fileExtension()))) {
-            filen = filename + DynamicLibrary::fileExtension();
-        } else {
-            return "";
-        }
+        filen = filesystem::path{filename + DynamicLibrary::fileExtension()};
+        if (!filesystem::exists(filen))
+            return {};
     }
 
     return canonical(filen).generic_string();
@@ -78,7 +78,7 @@ ExtensionSystem::ExtensionSystem()
     , _extension_system_alive(std::make_shared<bool>(true)) {}
 
 bool ExtensionSystem::addDynamicLibrary(const std::string& filename) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock{_mutex};
     std::vector<char>            buffer;
     return addDynamicLibrary(filename, buffer);
 }
@@ -99,7 +99,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
 
     auto already_loaded = _known_extensions.find(file_path);
 
-    // don't reload library, if there are already references to one contained extension
+    // don't reload library, if there are already references
     if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired())
         return false;
 
@@ -183,7 +183,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
     }
 
     const std::string end_string = desc_end;
-    StringSearch      search_end(end_string.c_str(), end_string.c_str() + end_string.length());
+    StringSearch      search_end{end_string.c_str(), end_string.c_str() + end_string.length()};
 
     std::vector<std::unordered_map<std::string, std::string>> data;
 
@@ -207,13 +207,9 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
             continue;
         }
 
-        const std::string raw = std::string(start, static_cast<std::size_t>(end - start - 1));
-
         bool                                         failed = false;
         std::unordered_map<std::string, std::string> result;
-        std::string                                  delimiter;
-        delimiter += '\0';
-        split(raw, delimiter, [&](const std::string& iter) {
+        split({start, end - 1}, '\0', [&](const std::string& iter) {
             std::size_t pos = iter.find('=');
             if (pos == std::string::npos) {
                 _message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter + "). Ignore entry."); // NOLINT
@@ -246,17 +242,10 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
 
     std::vector<ExtensionDescription> extension_list;
     for (const auto& iter : data) {
-        ExtensionDescription desc(iter);
+        ExtensionDescription desc{iter};
         if (!_verify_compiler
-            || (desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION)
-#if defined(EXTENSION_SYSTEM_COMPILER_GPLUSPLUS) || defined(EXTENSION_SYSTEM_COMPILER_CLANG)
-                && (desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_CLANG || desc["compiler"] == EXTENSION_SYSTEM_COMPILER_STR_GPLUSPLUS)
-#else
-                && desc["compiler"] == EXTENSION_SYSTEM_COMPILER && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR
-                && desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE
-#endif
-                // Should we check the operating system too?
-                )) {
+            || (desc[desc_start] == EXTENSION_SYSTEM_STR(EXTENSION_SYSTEM_EXTENSION_API_VERSION) && desc["compiler"] == EXTENSION_SYSTEM_COMPILER
+                && desc["compiler_version"] == EXTENSION_SYSTEM_COMPILER_VERSION_STR && desc["build_type"] == EXTENSION_SYSTEM_BUILD_TYPE)) {
 
             desc._data.erase(desc_start);
 
@@ -284,7 +273,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
         } else {
             // clang-format off
             _message_handler("addDynamicLibrary: Ignore file " + filename + ". Compilation options didn't match or were invalid ("
-                             + "version="          + desc[desc_start]
+                             "version="          + desc[desc_start]
                              + " compiler="         + desc["compiler"]
                              + " compiler_version=" + desc["compiler_version"]
                              + " build_type="       + desc["build_type"]
@@ -307,7 +296,7 @@ bool ExtensionSystem::addDynamicLibrary(const std::string& filename, std::vector
 }
 
 void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock{_mutex};
     auto                         real_filename = getRealFilename(filename);
     auto                         iter          = _known_extensions.find(real_filename);
     if (iter != _known_extensions.end())
@@ -317,7 +306,7 @@ void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
 void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
     debugMessage("search directory path=" + path + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock{_mutex};
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension()) {
@@ -333,7 +322,7 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
 void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive) {
     debugMessage("search directory path=" + path + "required_prefix=" + required_prefix + " recursive=" + (recursive ? "true" : "false"));
     std::vector<char>            buffer;
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock{_mutex};
     const std::size_t            required_prefix_length = required_prefix.length();
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path& p) {
@@ -354,7 +343,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
     for (const auto& f : metaDataFilter)
         filter_map[f.first].insert(f.second);
 
-    std::unique_lock<std::mutex>      lock(_mutex);
+    std::unique_lock<std::mutex>      lock{_mutex};
     std::vector<ExtensionDescription> result;
 
     for (const auto& i : _known_extensions) {
@@ -388,7 +377,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
-    std::unique_lock<std::mutex>      lock(_mutex);
+    std::unique_lock<std::mutex>      lock{_mutex};
     std::vector<ExtensionDescription> list;
 
     for (const auto& i : _known_extensions)
@@ -438,4 +427,12 @@ void ExtensionSystem::setVerifyCompiler(bool enable) {
 
 void ExtensionSystem::setEnableDebugOutput(bool enable) {
     _debug_output = enable;
+}
+
+void ExtensionSystem::setCheckForUPXCompression(bool enable) {
+    _check_for_upx_compression = enable;
+}
+
+bool ExtensionSystem::getCheckForUPXCompression() const {
+    return _check_for_upx_compression;
 }

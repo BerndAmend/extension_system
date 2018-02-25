@@ -12,14 +12,17 @@
 #include <functional>
 
 namespace extension_system {
-inline void split(const std::string& s, const std::string& delimiter, const std::function<bool(const std::string&)>& func) {
+
+// Func = bool(const std::string&)
+template <typename Func>
+inline void split(const std::string& s, const char delimiter, Func func) {
     std::size_t pos      = 0;
     std::size_t last_pos = 0;
     do {
         pos = s.find(delimiter, last_pos);
         if (!func(s.substr(last_pos, pos - last_pos)))
             break;
-        last_pos = pos + delimiter.length();
+        last_pos = pos + 1;
     } while (pos != std::string::npos);
 }
 }

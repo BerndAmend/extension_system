@@ -6,12 +6,12 @@
        (See accompanying file LICENSE_1_0.txt or copy at
        http://www.boost.org/LICENSE_1_0.txt)
 */
-#include <extension_system/filesystem.hpp>
+#include "filesystem.hpp"
 
 #ifdef EXTENSION_SYSTEM_USE_STD_FILESYSTEM
 using namespace extension_system::filesystem;
 
-#if defined(EXTENSION_SYSTEM_COMPILER_MSVC) && EXTENSION_SYSTEM_COMPILER_VERSION >= 1700
+#if defined(_MSC_VER) && _MSC_VER >= 1700
 path extension_system::filesystem::canonical(const path& p) {
     return p.filename();
 }
@@ -24,7 +24,7 @@ void extension_system::filesystem::forEachFileInDirectory(const path& root, cons
 
     auto options = directory_options::follow_directory_symlink;
 
-#if !defined(EXTENSION_SYSTEM_COMPILER_MSVC)
+#if !defined(_MSC_VER)
     options |= directory_options::skip_permission_denied;
 #endif
 
@@ -64,7 +64,7 @@ bool extension_system::filesystem::is_directory(const extension_system::filesyst
 }
 
 extension_system::filesystem::path extension_system::filesystem::canonical(const extension_system::filesystem::path& p) {
-#ifdef EXTENSION_SYSTEM_COMPILER_MINGW
+#ifdef __MINGW32__
     return p;
 #else
     std::array<char, PATH_MAX> buffer{};
