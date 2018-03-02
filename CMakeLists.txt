@@ -35,8 +35,9 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         # enable additional compiler warnings
         add_compile_options(/w14062 /w14263 /w14264 /w14289 /w14706)
 
-        # thread warnings as errors
-        add_compile_options(/WX)
+        if(EXTENSION_SYSTEM_TREAT_WARNINGS_AS_ERRORS)
+            add_compile_options(/WX)
+        endif()
     else()
         message(FATAL_ERROR "Unsupported or unknown compiler ${CMAKE_CXX_COMPILER_ID}")
     endif()
@@ -47,8 +48,12 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
         add_compile_options(-foptimize-sibling-calls)
-        add_compile_options(-Wall -Wextra -Wwrite-strings -Wenum-compare -Werror)
+        add_compile_options(-Wall -Wextra -Wwrite-strings -Wenum-compare)
         add_compile_options($<$<CONFIG:Release>:-D_FORTIFY_SOURCE=2>)
+
+        if(EXTENSION_SYSTEM_TREAT_WARNINGS_AS_ERRORS)
+            add_compile_options(-Werror)
+        endif()
 
         if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z now -pie")
