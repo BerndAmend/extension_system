@@ -8,7 +8,9 @@ project(extension_system)
 
 if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     set(EXTENSION_SYSTEM_IS_STANDALONE ON)
-    set(CMAKE_CXX_STANDARD 11)
+    if(NOT DEFINED CMAKE_CXX_STANDARD)
+        set(CMAKE_CXX_STANDARD 11)
+    endif()
 
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
