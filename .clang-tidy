@@ -1,4 +1,4 @@
-Checks: '*,-cppcoreguidelines-pro-bounds-*,-google-build-using-namespace,-google-readability-braces-around-statements,-readability-braces-around-statements',-fuchsia-*
+Checks: '*,-cppcoreguidelines-pro-bounds-*,-cppcoreguidelines-owning-memory,-google-build-using-namespace,-*readability-braces-around-statements,-fuchsia-*,-hicpp*'
 CheckOptions:
   - key:             readability-identifier-naming.NamespaceCase
     value:           lower_case
