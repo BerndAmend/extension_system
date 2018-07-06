@@ -134,17 +134,9 @@ matrix:
 
     # GCC 4
     - env: COMPILER=g++ BUILD_TYPE=Release CMAKE_CXX_STANDARD=11
-      os: linux
       addons: &gcc4
         apt:
           packages: g++-4.8
-          sources: *sources
-
-    - env: COMPILER=g++ BUILD_TYPE=Release CMAKE_CXX_STANDARD=11
-      os: linux
-      addons: &gcc4
-        apt:
-          packages: g++-4.9
           sources: *sources
 
     # GCC 5
