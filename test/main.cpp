@@ -60,7 +60,7 @@ TEST_CASE("all expected extensions were found") {
             CHECK(i.interface_name() == "extension_system::IExt2");
             CHECK(i.description() == "extension 3 for testing purposes");
         } else {
-            CHECK(false); // unexpected extension
+            CHECK(0 != 1); // unexpected extension
         }
     }
 }
