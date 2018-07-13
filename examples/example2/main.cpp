@@ -10,7 +10,7 @@
 #include <extension_system/ExtensionSystem.hpp>
 #include <iostream>
 
-int main() {
+int main() try {
     extension_system::ExtensionSystem extension_system;
     extension_system.searchDirectory(".");
 
@@ -32,4 +32,7 @@ int main() {
 
     std::cout << "output: " << e->test2() << "\n";
     return 0;
+} catch (const std::exception& e) {
+    std::cerr << "Caught exception " << e.what() << "\n";
+    return -1;
 }
