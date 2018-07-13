@@ -8,8 +8,8 @@
 */
 #pragma once
 
-#include <string>
 #include <functional>
+#include <string>
 
 namespace extension_system {
 

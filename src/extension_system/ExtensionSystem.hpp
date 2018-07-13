@@ -337,8 +337,8 @@ private:
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
         LibraryInfo& operator=(LibraryInfo&&) = default;
-        explicit LibraryInfo(const std::vector<ExtensionDescription>& ex)
-            : extensions{ex} {}
+        explicit LibraryInfo(std::vector<ExtensionDescription> ex)
+            : extensions{std::move(ex)} {}
 
         std::weak_ptr<DynamicLibrary>     dynamic_library;
         std::vector<ExtensionDescription> extensions;
