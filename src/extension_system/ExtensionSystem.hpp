@@ -12,7 +12,6 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include <mutex>
 #include <functional>
 
 #include "Extension.hpp"
@@ -207,11 +206,10 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name, ExtensionVersion version) {
-        std::unique_lock<std::mutex> lock{_mutex};
-        auto                         desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name, version);
+        auto desc = findDescription(extension_system::InterfaceName<T>::getString(), name, version);
         if (!desc.isValid())
             return {};
-        return createExtensionUnsafe<T>(desc);
+        return createExtension<T>(desc);
     }
 
     /**
@@ -222,11 +220,10 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const std::string& name) {
-        std::unique_lock<std::mutex> lock{_mutex};
-        const auto                   desc = findDescriptionUnsafe(extension_system::InterfaceName<T>::getString(), name);
+        const auto desc = findDescription(extension_system::InterfaceName<T>::getString(), name);
         if (!desc.isValid())
             return {};
-        return createExtensionUnsafe<T>(desc);
+        return createExtension<T>(desc);
     }
 
     /**
@@ -237,8 +234,31 @@ public:
      */
     template <class T>
     std::shared_ptr<T> createExtension(const ExtensionDescription& desc) {
-        std::unique_lock<std::mutex> lock{_mutex};
-        return createExtensionUnsafe<T>(desc);
+        if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
+            return {};
+
+        for (auto& i : _known_extensions) {
+            for (auto& j : i.second.extensions) {
+                if (j == desc) {
+                    auto dynlib = std::make_shared<DynamicLibrary>(i.first);
+                    if (!dynlib->isValid())
+                        _message_handler("_createExtension: " + dynlib->getError());
+
+                    if (dynlib == nullptr)
+                        continue;
+
+                    const auto func = dynlib->getProcAddress<T*(T*, const char**)>(j.get("entry_point"));
+
+                    if (func != nullptr) {
+                        T* ex = func(nullptr, nullptr);
+                        if (ex != nullptr) {
+                            return std::shared_ptr<T>(ex, [dynlib, func](T* obj) { func(obj, nullptr); });
+                        }
+                    }
+                }
+            }
+        }
+        return {};
     }
 
     /**
@@ -276,37 +296,8 @@ private:
     std::unordered_map<std::string, std::string> parseKeyValue(const std::string& filename, const char* start, const char* end);
     ExtensionDescription                         parse(const std::string& filename, std::unordered_map<std::string, std::string>&& desc);
 
-    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name, ExtensionVersion version) const;
-    ExtensionDescription findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const;
-
-    template <class T>
-    std::shared_ptr<T> createExtensionUnsafe(const ExtensionDescription& desc) {
-        if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
-            return {};
-
-        for (auto& i : _known_extensions) {
-            for (auto& j : i.second.extensions) {
-                if (j == desc) {
-                    auto dynlib = std::make_shared<DynamicLibrary>(i.first);
-                    if (!dynlib->isValid())
-                        _message_handler("_createExtension: " + dynlib->getError());
-
-                    if (dynlib == nullptr)
-                        continue;
-
-                    const auto func = dynlib->getProcAddress<T*(T*, const char**)>(j.get("entry_point"));
-
-                    if (func != nullptr) {
-                        T* ex = func(nullptr, nullptr);
-                        if (ex != nullptr) {
-                            return std::shared_ptr<T>(ex, [dynlib, func](T* obj) { func(obj, nullptr); });
-                        }
-                    }
-                }
-            }
-        }
-        return {};
-    }
+    ExtensionDescription findDescription(const std::string& interface_name, const std::string& name, ExtensionVersion version) const;
+    ExtensionDescription findDescription(const std::string& interface_name, const std::string& name) const;
 
     struct LibraryInfo final {
         LibraryInfo()                   = default;
@@ -327,7 +318,6 @@ private:
     bool _debug_output    = false;
 
     std::function<void(const std::string&)>      _message_handler;
-    mutable std::mutex                           _mutex;
     std::unordered_map<std::string, LibraryInfo> _known_extensions;
 
     // The following strings are used to find the exported classes in the dll/so files

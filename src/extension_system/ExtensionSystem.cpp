@@ -79,8 +79,7 @@ ExtensionSystem::ExtensionSystem()
 ExtensionSystem::~ExtensionSystem() noexcept = default;
 
 std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename) {
-    std::unique_lock<std::mutex> lock{_mutex};
-    std::vector<char>            buffer;
+    std::vector<char> buffer;
     return addDynamicLibrary(filename, buffer);
 }
 
@@ -302,17 +301,15 @@ ExtensionDescription ExtensionSystem::parse(const std::string& filename, std::un
 }
 
 void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
-    std::unique_lock<std::mutex> lock{_mutex};
-    auto                         real_filename = getRealFilename(filename);
-    auto                         iter          = _known_extensions.find(real_filename);
+    auto real_filename = getRealFilename(filename);
+    auto iter          = _known_extensions.find(real_filename);
     if (iter != _known_extensions.end())
         _known_extensions.erase(iter);
 }
 
 void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
     debugMessage("search directory path=" + path + " recursive=" + (recursive ? "true" : "false"));
-    std::vector<char>            buffer;
-    std::unique_lock<std::mutex> lock{_mutex};
+    std::vector<char> buffer;
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension())
@@ -326,9 +323,8 @@ void ExtensionSystem::searchDirectory(const std::string& path, bool recursive) {
 
 void ExtensionSystem::searchDirectory(const std::string& path, const std::string& required_prefix, bool recursive) {
     debugMessage("search directory path=" + path + "required_prefix=" + required_prefix + " recursive=" + (recursive ? "true" : "false"));
-    std::vector<char>            buffer;
-    std::unique_lock<std::mutex> lock{_mutex};
-    const std::size_t            required_prefix_length = required_prefix.length();
+    std::vector<char> buffer;
+    const std::size_t required_prefix_length = required_prefix.length();
     filesystem::forEachFileInDirectory(path,
                                        [this, &buffer, required_prefix_length, &required_prefix](const filesystem::path& p) {
                                            if (p.extension().string() == DynamicLibrary::fileExtension()
@@ -347,7 +343,6 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
     for (const auto& f : metaDataFilter)
         filter_map[f.first].insert(f.second);
 
-    std::unique_lock<std::mutex>      lock{_mutex};
     std::vector<ExtensionDescription> result;
 
     for (const auto& i : _known_extensions) {
@@ -381,7 +376,6 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
-    std::unique_lock<std::mutex>      lock{_mutex};
     std::vector<ExtensionDescription> list;
 
     for (const auto& i : _known_extensions)
@@ -391,8 +385,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions() const {
     return list;
 }
 
-ExtensionDescription
-ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name, ExtensionVersion version) const {
+ExtensionDescription ExtensionSystem::findDescription(const std::string& interface_name, const std::string& name, ExtensionVersion version) const {
     for (const auto& i : _known_extensions)
         for (const auto& j : i.second.extensions)
             if (j.interface_name() == interface_name && j.name() == name && j.version() == version)
@@ -401,7 +394,7 @@ ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const 
     return {};
 }
 
-ExtensionDescription ExtensionSystem::findDescriptionUnsafe(const std::string& interface_name, const std::string& name) const {
+ExtensionDescription ExtensionSystem::findDescription(const std::string& interface_name, const std::string& name) const {
     ExtensionVersion            highest_version{};
     const ExtensionDescription* desc{};
 
