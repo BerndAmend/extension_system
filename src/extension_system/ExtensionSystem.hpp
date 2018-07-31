@@ -287,13 +287,9 @@ private:
         for (auto& i : _known_extensions) {
             for (auto& j : i.second.extensions) {
                 if (j == desc) {
-                    auto dynlib = i.second.dynamic_library.lock();
-                    if (dynlib == nullptr) {
-                        dynlib = std::make_shared<DynamicLibrary>(i.first);
-                        if (!dynlib->isValid())
-                            _message_handler("_createExtension: " + dynlib->getError());
-                        i.second.dynamic_library = dynlib;
-                    }
+                    auto dynlib = std::make_shared<DynamicLibrary>(i.first);
+                    if (!dynlib->isValid())
+                        _message_handler("_createExtension: " + dynlib->getError());
 
                     if (dynlib == nullptr)
                         continue;
@@ -322,7 +318,6 @@ private:
         explicit LibraryInfo(std::vector<ExtensionDescription> ex)
             : extensions{std::move(ex)} {}
 
-        std::weak_ptr<DynamicLibrary>     dynamic_library;
         std::vector<ExtensionDescription> extensions;
     };
 

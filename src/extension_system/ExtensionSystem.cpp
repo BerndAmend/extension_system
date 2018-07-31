@@ -100,8 +100,8 @@ std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename, std:
 
     auto already_loaded = _known_extensions.find(file_path);
 
-    // don't reload library, if there are already references
-    if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired())
+    // don't reload library
+    if (already_loaded != _known_extensions.end())
         return 0;
 
     std::size_t file_length = 0;
