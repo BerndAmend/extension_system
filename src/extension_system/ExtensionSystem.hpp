@@ -38,6 +38,7 @@ public:
     ExtensionDescription(const ExtensionDescription&) = default;
     ExtensionDescription& operator=(ExtensionDescription&&) = default;
     ExtensionDescription& operator=(const ExtensionDescription&) = default;
+    ~ExtensionDescription() noexcept                             = default;
 
     ExtensionDescription(std::unordered_map<std::string, std::string>&& data, ExtensionVersion version)
         : _data{data}
@@ -141,6 +142,8 @@ public:
     ExtensionSystem& operator=(ExtensionSystem&&) = delete;
     ExtensionSystem& operator=(const ExtensionSystem&) = delete;
 
+    ~ExtensionSystem() noexcept;
+
     /**
      * Scans a dynamic library file for extensions and adds these extensions to the list of known extensions.
      * @param filename File name of the library
@@ -239,20 +242,6 @@ public:
     }
 
     /**
-     * @param extension Instance of an extension.
-     * @returns ExtensionDescription of extension.
-     * If extension was not created by this extension system instance, an empty ExtensionDescription will be returned.
-     */
-    template <class T>
-    ExtensionDescription findDescription(const std::shared_ptr<T>& extension) const {
-        std::unique_lock<std::mutex> lock{_mutex};
-        const auto                   i = _loaded_extensions.find(extension.get());
-        if (i == _loaded_extensions.end())
-            return {};
-        return i->second;
-    }
-
-    /**
      * Sets a message handler.
      * A message handler is a function that should be called if the ExtensionSystem detects an non fatal error while adding a library.
      * The default message handler prints to std::cerr
@@ -298,13 +287,9 @@ private:
         for (auto& i : _known_extensions) {
             for (auto& j : i.second.extensions) {
                 if (j == desc) {
-                    auto dynlib = i.second.dynamic_library.lock();
-                    if (dynlib == nullptr) {
-                        dynlib = std::make_shared<DynamicLibrary>(i.first);
-                        if (!dynlib->isValid())
-                            _message_handler("_createExtension: " + dynlib->getError());
-                        i.second.dynamic_library = dynlib;
-                    }
+                    auto dynlib = std::make_shared<DynamicLibrary>(i.first);
+                    if (!dynlib->isValid())
+                        _message_handler("_createExtension: " + dynlib->getError());
 
                     if (dynlib == nullptr)
                         continue;
@@ -314,16 +299,7 @@ private:
                     if (func != nullptr) {
                         T* ex = func(nullptr, nullptr);
                         if (ex != nullptr) {
-                            _loaded_extensions[ex] = j;
-                            // Frees an extension and unloads the containing library, if no references to that library exist anymore.
-                            std::weak_ptr<bool> alive = _extension_system_alive;
-                            return std::shared_ptr<T>(ex, [this, alive, dynlib, func](T* obj) {
-                                func(obj, nullptr);
-                                if (!alive.expired()) {
-                                    std::unique_lock<std::mutex> lock{_mutex};
-                                    _loaded_extensions.erase(obj);
-                                }
-                            });
+                            return std::shared_ptr<T>(ex, [dynlib, func](T* obj) { func(obj, nullptr); });
                         }
                     }
                 }
@@ -334,13 +310,14 @@ private:
 
     struct LibraryInfo final {
         LibraryInfo()                   = default;
+        LibraryInfo(LibraryInfo&&)      = default;
         LibraryInfo(const LibraryInfo&) = delete;
         LibraryInfo& operator=(const LibraryInfo&) = delete;
         LibraryInfo& operator=(LibraryInfo&&) = default;
+        ~LibraryInfo() noexcept               = default;
         explicit LibraryInfo(std::vector<ExtensionDescription> ex)
             : extensions{std::move(ex)} {}
 
-        std::weak_ptr<DynamicLibrary>     dynamic_library;
         std::vector<ExtensionDescription> extensions;
     };
 
@@ -349,12 +326,9 @@ private:
     bool _verify_compiler = true;
     bool _debug_output    = false;
 
-    std::function<void(const std::string&)> _message_handler;
-    // used to avoid removing extensions while destroying them from the loadedExtensions map
-    std::shared_ptr<bool>                                 _extension_system_alive;
-    mutable std::mutex                                    _mutex;
-    std::unordered_map<std::string, LibraryInfo>          _known_extensions;
-    std::unordered_map<const void*, ExtensionDescription> _loaded_extensions;
+    std::function<void(const std::string&)>      _message_handler;
+    mutable std::mutex                           _mutex;
+    std::unordered_map<std::string, LibraryInfo> _known_extensions;
 
     // The following strings are used to find the exported classes in the dll/so files
     // The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.

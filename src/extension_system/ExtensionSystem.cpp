@@ -74,8 +74,9 @@ inline corpusIter getFirstFromPair(corpusIter p) {
 }
 
 ExtensionSystem::ExtensionSystem()
-    : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
-    , _extension_system_alive(std::make_shared<bool>(true)) {}
+    : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; }) {}
+
+ExtensionSystem::~ExtensionSystem() noexcept = default;
 
 std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock{_mutex};
@@ -99,8 +100,8 @@ std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename, std:
 
     auto already_loaded = _known_extensions.find(file_path);
 
-    // don't reload library, if there are already references
-    if (already_loaded != _known_extensions.end() && !already_loaded->second.dynamic_library.expired())
+    // don't reload library
+    if (already_loaded != _known_extensions.end())
         return 0;
 
     std::size_t file_length = 0;

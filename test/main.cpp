@@ -93,10 +93,6 @@ TEST_CASE("load extension by name") {
     REQUIRE(e != nullptr);
 
     CHECK(e->test1() == 21);
-
-    auto desc = extension_system.findDescription(e);
-    CHECK(desc.isValid());
-    CHECK(desc.version() == 110);
 }
 
 TEST_CASE("load extension by name and version") {
@@ -113,10 +109,6 @@ TEST_CASE("load extension by name and version") {
     REQUIRE(e != nullptr);
 
     CHECK(e->test1() == 42);
-
-    auto desc = extension_system.findDescription(e);
-    CHECK(desc.isValid());
-    CHECK(desc.version() == 100);
 }
 
 TEST_CASE("load extension by name 2") {
@@ -133,10 +125,6 @@ TEST_CASE("load extension by name 2") {
     REQUIRE(e != nullptr);
 
     CHECK(e->test2() == "Hello from Ext2");
-
-    auto desc = extension_system.findDescription(e);
-    CHECK(desc.isValid());
-    CHECK(desc.version() == 100);
 }
 
 #if 0
