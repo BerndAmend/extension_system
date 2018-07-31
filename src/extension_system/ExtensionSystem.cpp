@@ -74,8 +74,9 @@ inline corpusIter getFirstFromPair(corpusIter p) {
 }
 
 ExtensionSystem::ExtensionSystem()
-    : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; })
-    , _extension_system_alive(std::make_shared<bool>(true)) {}
+    : _message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; }) {}
+
+ExtensionSystem::~ExtensionSystem() noexcept = default;
 
 std::size_t ExtensionSystem::addDynamicLibrary(const std::string& filename) {
     std::unique_lock<std::mutex> lock{_mutex};
