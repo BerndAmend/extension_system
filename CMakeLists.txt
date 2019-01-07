@@ -69,29 +69,32 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
         endif()
     endif()
 
-    find_program(
-        CLANG_TIDY_EXE
-        NAMES "clang-tidy"
-        DOC "Path to clang-tidy executable"
-        )
-    if(CLANG_TIDY_EXE)
-        message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
-        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    option(EXTENSION_SYSTEM_ENABLE_CLANG_TIDY "" ON)
+    if(EXTENSION_SYSTEM_ENABLE_CLANG_TIDY)
+        find_program(
+            CLANG_TIDY_EXE
+            NAMES "clang-tidy"
+            DOC "Path to clang-tidy executable"
+            )
+        if(CLANG_TIDY_EXE)
+            message(STATUS "Enable clang-tidy: ${CLANG_TIDY_EXE}")
+            set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+        endif()
     endif()
 
-# Does not work well will QtCreator
-option(EXTENSION_SYSTEM_ENABLE_CPPCHECK "" OFF)
-if(EXTENSION_SYSTEM_ENABLE_CPPCHECK)
-    find_program(
-        CPPCHECK_EXE
-        NAMES "cppcheck"
-        DOC "Path to cppcheck executable"
-        )
-    if(CPPCHECK_EXE)
-        message(STATUS "Enable cppcheck: ${CPPCHECK_EXE}")
-        set(CMAKE_CXX_CPPCHECK "${CPPCHECK_EXE}" "--enable=all" "--quiet")
+    # Does not work well will QtCreator
+    option(EXTENSION_SYSTEM_ENABLE_CPPCHECK "" OFF)
+    if(EXTENSION_SYSTEM_ENABLE_CPPCHECK)
+        find_program(
+            CPPCHECK_EXE
+            NAMES "cppcheck"
+            DOC "Path to cppcheck executable"
+            )
+        if(CPPCHECK_EXE)
+            message(STATUS "Enable cppcheck: ${CPPCHECK_EXE}")
+            set(CMAKE_CXX_CPPCHECK "${CPPCHECK_EXE}" "--enable=all" "--quiet")
+        endif()
     endif()
-endif()
 endif()
 
 # library
