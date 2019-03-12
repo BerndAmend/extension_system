@@ -33,7 +33,7 @@ DynamicLibrary::DynamicLibrary(const std::string& filename)
 #ifdef _WIN32
     _handle = LoadLibraryA(filename.c_str());
 #else
-    _handle = dlopen(filename.c_str(), RTLD_LAZY);
+    _handle = dlopen(filename.c_str(), RTLD_LAZY | RTLD_NODELETE);
 #endif
     if (_handle == nullptr)
         setLastError();
