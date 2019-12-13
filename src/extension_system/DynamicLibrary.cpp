@@ -86,7 +86,8 @@ void DynamicLibrary::setLastError() {
 #ifdef _WIN32
     _last_error = std::to_string(GetLastError());
 #else
-    _last_error = dlerror();
+    auto err = dlerror();
+    _last_error = err != nullptr ? err : "";
 #endif
 }
 
