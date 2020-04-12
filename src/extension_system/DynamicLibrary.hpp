@@ -35,9 +35,9 @@ public:
     std::string getError() const;
 
 private:
-    std::string _filename;
-    void*       _handle = nullptr;
-    std::string _last_error;
+    std::string m_filename;
+    void*       m_handle{};
+    std::string m_last_error;
 
     void setLastError();
 };

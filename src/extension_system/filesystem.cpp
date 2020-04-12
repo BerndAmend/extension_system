@@ -52,8 +52,8 @@ bool extension_system::filesystem::exists(const extension_system::filesystem::pa
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p) {
-    const std::string str = p.string();
-    struct stat       sb {};
+    const auto  str = p.string();
+    struct stat sb {};
     return (stat(str.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
 
@@ -62,8 +62,8 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
     return p;
 #else
     std::array<char, PATH_MAX> buffer{};
-    const std::string          path   = p.string();
-    const char*                result = realpath(path.c_str(), buffer.data());
+    const auto                 path   = p.string();
+    const auto                 result = realpath(path.c_str(), buffer.data());
     if (result == nullptr)
         return p; // couldn't resolve symbolic link
     return std::string(result);
@@ -75,12 +75,11 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
                                                           bool recursive) {
     const std::function<void(const extension_system::filesystem::path& p)> handle_dir
         = [&func, &recursive, &handle_dir](const extension_system::filesystem::path& p) {
-
-              const std::string path_string = p.string();
-              DIR*              dp          = opendir(path_string.c_str());
+              const auto path_string = p.string();
+              auto       dp          = opendir(path_string.c_str());
 
               if (dp != nullptr) {
-                  dirent* ep = nullptr;
+                  dirent* ep{};
                   while ((ep = readdir(dp)) != nullptr) {
                       const std::string      name{ep->d_name};
                       const filesystem::path full_name = p / name;

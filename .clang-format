@@ -15,9 +15,10 @@ AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
 PenaltyBreakFirstLessLess: 50
 AlwaysBreakTemplateDeclarations: true
-UseTab:    Never      
+UseTab:    Never
 TabWidth:        4
 SortIncludes:    false
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignEscapedNewlinesLeft: true
+SpaceBeforeCpp11BracedList: false

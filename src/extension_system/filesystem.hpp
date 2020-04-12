@@ -57,7 +57,7 @@ namespace filesystem {
 class path final {
 public:
     path(std::string p)
-        : _pathname{std::move(p)} {}
+        : m_pathname{std::move(p)} {}
 
     path()              = default;
     path(path&& p)      = default;
@@ -66,16 +66,16 @@ public:
     path& operator=(path&& p) = default;
 
     const std::string string() const {
-        return _pathname;
+        return m_pathname;
     }
     // NOLINTNEXTLINE(readability-identifier-naming)
     const std::string generic_string() const {
-        return _pathname;
+        return m_pathname;
     }
 
     path filename() const {
         path result;
-        split(_pathname, '/', [&](const std::string& str) {
+        split(m_pathname, '/', [&](const std::string& str) {
             result = str;
             return true;
         });
@@ -101,7 +101,7 @@ public:
     }
 
 private:
-    std::string _pathname;
+    std::string m_pathname;
 };
 
 bool exists(const path& p);

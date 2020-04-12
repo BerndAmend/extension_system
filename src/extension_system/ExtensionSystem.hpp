@@ -16,7 +16,7 @@ namespace extension_system {
 using ExtensionVersion = uint32_t;
 
 /**
- * Structure that describes an extenstion.
+ * Structure that describes an extension.
  * Basically an extension is described by
  * \li the interface it implements,
  * \li its name and
@@ -34,15 +34,15 @@ public:
     ~ExtensionDescription() noexcept                             = default;
 
     ExtensionDescription(std::unordered_map<std::string, std::string>&& data, ExtensionVersion version)
-        : _data{data}
-        , _version{version} {}
+        : m_data{data}
+        , m_version{version} {}
 
     /**
      * Returns if the extension is valid. An extension is invalid if the describing data structure was not found within the shared module
      * (.so/.dll ...)
      */
     bool isValid() const {
-        return !_data.empty();
+        return !m_data.empty();
     }
 
     /**
@@ -57,7 +57,7 @@ public:
      * @return the version or 0 if the value couldn't be parsed or didn't exist
      */
     ExtensionVersion version() const {
-        return _version;
+        return m_version;
     }
 
     /**
@@ -85,7 +85,7 @@ public:
      * Returns a map of additional metadata, defined by extension's author
      */
     const std::unordered_map<std::string, std::string>& data() const {
-        return _data;
+        return m_data;
     }
 
     /**
@@ -94,8 +94,8 @@ public:
      * @return Metadata associated with key or an empty string if key was not found in meta data
      */
     std::string get(const std::string& key) const {
-        auto iter = _data.find(key);
-        if (iter == _data.end())
+        auto iter = m_data.find(key);
+        if (iter == m_data.end())
             return {};
         return iter->second;
     }
@@ -108,12 +108,12 @@ public:
     }
 
     bool operator==(const ExtensionDescription& desc) const {
-        return _data == desc._data && _version == desc._version;
+        return m_data == desc.m_data && m_version == desc.m_version;
     }
 
 private:
-    std::unordered_map<std::string, std::string> _data;
-    ExtensionVersion                             _version{};
+    std::unordered_map<std::string, std::string> m_data;
+    ExtensionVersion                             m_version{};
 };
 
 inline std::string to_string(const ExtensionDescription& e) {
@@ -231,12 +231,12 @@ public:
         if (!desc.isValid() || extension_system::InterfaceName<T>::getString() != desc.interface_name())
             return {};
 
-        for (auto& i : _known_extensions) {
+        for (auto& i : m_known_extensions) {
             for (auto& j : i.second.extensions) {
                 if (j == desc) {
                     auto dynlib = std::make_shared<DynamicLibrary>(i.first);
                     if (!dynlib->isValid())
-                        _message_handler("_createExtension: " + dynlib->getError());
+                        m_message_handler("_createExtension: " + dynlib->getError());
 
                     if (dynlib == nullptr)
                         continue;
@@ -263,17 +263,17 @@ public:
      */
     void setMessageHandler(const std::function<void(const std::string&)>& func) {
         if (func == nullptr)
-            _message_handler = [](const std::string&) {};
+            m_message_handler = [](const std::string&) {};
         else
-            _message_handler = func;
+            m_message_handler = func;
     }
 
     void setMessageHandler(std::nullptr_t) {
-        _message_handler = [](const std::string&) {};
+        m_message_handler = [](const std::string&) {};
     }
 
     bool getVerifyCompiler() const {
-        return _verify_compiler;
+        return m_verify_compiler;
     }
 
     /**
@@ -308,11 +308,11 @@ private:
 
     void debugMessage(const std::string& msg);
 
-    bool _verify_compiler = true;
-    bool _debug_output    = false;
+    bool m_verify_compiler = true;
+    bool m_debug_output    = false;
 
-    std::function<void(const std::string&)>      _message_handler;
-    std::unordered_map<std::string, LibraryInfo> _known_extensions;
+    std::function<void(const std::string&)>      m_message_handler;
+    std::unordered_map<std::string, LibraryInfo> m_known_extensions;
 
     // The following strings are used to find the exported classes in the dll/so files
     // The strings are concatenated at runtime to avoid that they are found in the ExtensionSystem binary.

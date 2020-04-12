@@ -23,32 +23,32 @@
 using extension_system::DynamicLibrary;
 
 DynamicLibrary::DynamicLibrary(const std::string& filename)
-    : _filename(filename) {
+    : m_filename(filename) {
 #ifdef _WIN32
-    _handle = LoadLibraryA(filename.c_str());
+    m_handle = LoadLibraryA(filename.c_str());
 #else
-    _handle = dlopen(filename.c_str(), RTLD_LAZY | RTLD_NODELETE);
+    m_handle = dlopen(filename.c_str(), RTLD_LAZY | RTLD_NODELETE);
 #endif
-    if (_handle == nullptr)
+    if (m_handle == nullptr)
         setLastError();
 }
 
 DynamicLibrary::~DynamicLibrary() noexcept {
     if (isValid()) {
 #ifdef _WIN32
-        FreeLibrary(_handle);
+        FreeLibrary(m_handle);
 #else
-        dlclose(_handle);
+        dlclose(m_handle);
 #endif
     }
 }
 
 std::string DynamicLibrary::getFilename() const {
-    return _filename;
+    return m_filename;
 }
 
 const void* DynamicLibrary::getHandle() const {
-    return _handle;
+    return m_handle;
 }
 
 void* DynamicLibrary::getProcAddress(const std::string& name) {
@@ -58,10 +58,10 @@ void* DynamicLibrary::getProcAddress(const std::string& name) {
     void* func;
 #ifdef _WIN32
     static_assert(sizeof(void*) == sizeof(void (*)(void)), "object pointer and function pointer sizes must be equal");
-    const auto tmp = GetProcAddress(_handle, name.c_str());
+    const auto tmp = GetProcAddress(m_handle, name.c_str());
     func           = *(void**)&tmp;
 #else
-    func = dlsym(_handle, name.c_str());
+    func = dlsym(m_handle, name.c_str());
 #endif
     if (func == nullptr)
         setLastError();
@@ -79,18 +79,18 @@ std::string DynamicLibrary::fileExtension() {
 }
 
 bool DynamicLibrary::isValid() const {
-    return _handle != nullptr;
+    return m_handle != nullptr;
 }
 
 void DynamicLibrary::setLastError() {
 #ifdef _WIN32
-    _last_error = std::to_string(GetLastError());
+    m_last_error = std::to_string(GetLastError());
 #else
-    auto err = dlerror();
-    _last_error = err != nullptr ? err : "";
+    auto err     = dlerror();
+    m_last_error = err != nullptr ? err : "";
 #endif
 }
 
 std::string DynamicLibrary::getError() const {
-    return _last_error;
+    return m_last_error;
 }
