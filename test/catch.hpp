@@ -1,9 +1,9 @@
 /*
- *  Catch v2.11.0
- *  Generated: 2019-11-15 15:01:56.628356
+ *  Catch v2.11.3
+ *  Generated: 2020-03-19 13:44:21.042491
  *  ----------------------------------------------------------
  *  This file has been merged from multiple headers. Please don't edit it directly
- *  Copyright (c) 2019 Two Blue Cubes Ltd. All rights reserved.
+ *  Copyright (c) 2020 Two Blue Cubes Ltd. All rights reserved.
  *
  *  Distributed under the Boost Software License, Version 1.0. (See accompanying
  *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,7 +15,7 @@
 
 #define CATCH_VERSION_MAJOR 2
 #define CATCH_VERSION_MINOR 11
-#define CATCH_VERSION_PATCH 0
+#define CATCH_VERSION_PATCH 3
 
 #ifdef __clang__
 #    pragma clang system_header
@@ -141,12 +141,17 @@ namespace Catch {
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__ICC)
 #    define CATCH_INTERNAL_START_WARNINGS_SUPPRESSION _Pragma( "GCC diagnostic push" )
 #    define CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION  _Pragma( "GCC diagnostic pop" )
+
+#    define CATCH_INTERNAL_IGNORE_BUT_WARN(...) (void)__builtin_constant_p(__VA_ARGS__)
+
 #endif
 
 #if defined(__clang__)
 
 #    define CATCH_INTERNAL_START_WARNINGS_SUPPRESSION _Pragma( "clang diagnostic push" )
 #    define CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION  _Pragma( "clang diagnostic pop" )
+
+#    define CATCH_INTERNAL_IGNORE_BUT_WARN(...) (void)__builtin_constant_p(__VA_ARGS__)
 
 #    define CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS \
          _Pragma( "clang diagnostic ignored \"-Wexit-time-destructors\"" ) \
@@ -241,9 +246,12 @@ namespace Catch {
 // MSVC traditional preprocessor needs some workaround for __VA_ARGS__
 // _MSVC_TRADITIONAL == 0 means new conformant preprocessor
 // _MSVC_TRADITIONAL == 1 means old traditional non-conformant preprocessor
-#  if !defined(_MSVC_TRADITIONAL) || (defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL)
-#    define CATCH_INTERNAL_CONFIG_TRADITIONAL_MSVC_PREPROCESSOR
-#  endif
+#  if !defined(__clang__) // Handle Clang masquerading for msvc
+#    if !defined(_MSVC_TRADITIONAL) || (defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL)
+#      define CATCH_INTERNAL_CONFIG_TRADITIONAL_MSVC_PREPROCESSOR
+#    endif // MSVC_TRADITIONAL
+#  endif // __clang__
+
 #endif // _MSC_VER
 
 #if defined(_REENTRANT) || defined(_MSC_VER)
@@ -291,7 +299,7 @@ namespace Catch {
     #define CATCH_CONFIG_COLOUR_NONE
 #endif
 
-#if defined(__UCLIBC__)
+#if !defined(_GLIBCXX_USE_C99_MATH_TR1)
 #define CATCH_INTERNAL_CONFIG_GLOBAL_NEXTAFTER
 #endif
 
@@ -415,6 +423,12 @@ namespace Catch {
 #endif
 #if !defined(CATCH_INTERNAL_SUPPRESS_ZERO_VARIADIC_WARNINGS)
 #   define CATCH_INTERNAL_SUPPRESS_ZERO_VARIADIC_WARNINGS
+#endif
+
+// The goal of this macro is to avoid evaluation of the arguments, but
+// still have the compiler warn on problems inside...
+#if !defined(CATCH_INTERNAL_IGNORE_BUT_WARN)
+#   define CATCH_INTERNAL_IGNORE_BUT_WARN(...)
 #endif
 
 #if defined(__APPLE__) && defined(__apple_build_version__) && (__clang_major__ < 10)
@@ -2660,6 +2674,7 @@ namespace Catch {
 ///////////////////////////////////////////////////////////////////////////////
 #define INTERNAL_CATCH_TEST( macroName, resultDisposition, ... ) \
     do { \
+        CATCH_INTERNAL_IGNORE_BUT_WARN(__VA_ARGS__); \
         Catch::AssertionHandler catchAssertionHandler( macroName##_catch_sr, CATCH_INTERNAL_LINEINFO, CATCH_INTERNAL_STRINGIFY(__VA_ARGS__), resultDisposition ); \
         INTERNAL_CATCH_TRY { \
             CATCH_INTERNAL_START_WARNINGS_SUPPRESSION \
@@ -2668,8 +2683,7 @@ namespace Catch {
             CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION \
         } INTERNAL_CATCH_CATCH( catchAssertionHandler ) \
         INTERNAL_CATCH_REACT( catchAssertionHandler ) \
-    } while( (void)0, (false) && static_cast<bool>( !!(__VA_ARGS__) ) ) // the expression here is never evaluated at runtime but it forces the compiler to give it a look
-    // The double negation silences MSVC's C4800 warning, the static_cast forces short-circuit evaluation if the type has overloaded &&.
+    } while( (void)0, (false) && static_cast<bool>( !!(__VA_ARGS__) ) )
 
 ///////////////////////////////////////////////////////////////////////////////
 #define INTERNAL_CATCH_IF( macroName, resultDisposition, ... ) \
@@ -2747,7 +2761,7 @@ namespace Catch {
 
 ///////////////////////////////////////////////////////////////////////////////
 #define INTERNAL_CATCH_INFO( macroName, log ) \
-    Catch::ScopedMessage INTERNAL_CATCH_UNIQUE_NAME( scopedMessage )( Catch::MessageBuilder( macroName##_catch_sr, CATCH_INTERNAL_LINEINFO, Catch::ResultWas::Info ) << log )
+    Catch::ScopedMessage INTERNAL_CATCH_UNIQUE_NAME( scopedMessage )( Catch::MessageBuilder( macroName##_catch_sr, CATCH_INTERNAL_LINEINFO, Catch::ResultWas::Info ) << log );
 
 ///////////////////////////////////////////////////////////////////////////////
 #define INTERNAL_CATCH_UNSCOPED_INFO( macroName, log ) \
@@ -3263,9 +3277,10 @@ namespace Matchers {
                 return description;
             }
 
-            MatchAllOf<ArgT>& operator && ( MatcherBase<ArgT> const& other ) {
-                m_matchers.push_back( &other );
-                return *this;
+            MatchAllOf<ArgT> operator && ( MatcherBase<ArgT> const& other ) {
+                auto copy(*this);
+                copy.m_matchers.push_back( &other );
+                return copy;
             }
 
             std::vector<MatcherBase<ArgT> const*> m_matchers;
@@ -3296,9 +3311,10 @@ namespace Matchers {
                 return description;
             }
 
-            MatchAnyOf<ArgT>& operator || ( MatcherBase<ArgT> const& other ) {
-                m_matchers.push_back( &other );
-                return *this;
+            MatchAnyOf<ArgT> operator || ( MatcherBase<ArgT> const& other ) {
+                auto copy(*this);
+                copy.m_matchers.push_back( &other );
+                return copy;
             }
 
             std::vector<MatcherBase<ArgT> const*> m_matchers;
@@ -3907,7 +3923,6 @@ namespace Generators {
     class SingleValueGenerator final : public IGenerator<T> {
         T m_value;
     public:
-        SingleValueGenerator(T const& value) : m_value( value ) {}
         SingleValueGenerator(T&& value) : m_value(std::move(value)) {}
 
         T const& get() const override {
@@ -3970,21 +3985,21 @@ namespace Generators {
             m_generators.emplace_back(std::move(generator));
         }
         void populate(T&& val) {
-            m_generators.emplace_back(value(std::move(val)));
+            m_generators.emplace_back(value(std::forward<T>(val)));
         }
         template<typename U>
         void populate(U&& val) {
-            populate(T(std::move(val)));
+            populate(T(std::forward<U>(val)));
         }
         template<typename U, typename... Gs>
-        void populate(U&& valueOrGenerator, Gs... moreGenerators) {
+        void populate(U&& valueOrGenerator, Gs &&... moreGenerators) {
             populate(std::forward<U>(valueOrGenerator));
             populate(std::forward<Gs>(moreGenerators)...);
         }
 
     public:
         template <typename... Gs>
-        Generators(Gs... moreGenerators) {
+        Generators(Gs &&... moreGenerators) {
             m_generators.reserve(sizeof...(Gs));
             populate(std::forward<Gs>(moreGenerators)...);
         }
@@ -4015,7 +4030,7 @@ namespace Generators {
     struct as {};
 
     template<typename T, typename... Gs>
-    auto makeGenerators( GeneratorWrapper<T>&& generator, Gs... moreGenerators ) -> Generators<T> {
+    auto makeGenerators( GeneratorWrapper<T>&& generator, Gs &&... moreGenerators ) -> Generators<T> {
         return Generators<T>(std::move(generator), std::forward<Gs>(moreGenerators)...);
     }
     template<typename T>
@@ -4023,11 +4038,11 @@ namespace Generators {
         return Generators<T>(std::move(generator));
     }
     template<typename T, typename... Gs>
-    auto makeGenerators( T&& val, Gs... moreGenerators ) -> Generators<T> {
+    auto makeGenerators( T&& val, Gs &&... moreGenerators ) -> Generators<T> {
         return makeGenerators( value( std::forward<T>( val ) ), std::forward<Gs>( moreGenerators )... );
     }
     template<typename T, typename U, typename... Gs>
-    auto makeGenerators( as<T>, U&& val, Gs... moreGenerators ) -> Generators<T> {
+    auto makeGenerators( as<T>, U&& val, Gs &&... moreGenerators ) -> Generators<T> {
         return makeGenerators( value( T( std::forward<U>( val ) ) ), std::forward<Gs>( moreGenerators )... );
     }
 
@@ -4053,11 +4068,11 @@ namespace Generators {
 } // namespace Catch
 
 #define GENERATE( ... ) \
-    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [ ]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } )
+    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [ ]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } ) //NOLINT(google-build-using-namespace)
 #define GENERATE_COPY( ... ) \
-    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [=]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } )
+    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [=]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } ) //NOLINT(google-build-using-namespace)
 #define GENERATE_REF( ... ) \
-    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [&]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } )
+    Catch::Generators::generate( CATCH_INTERNAL_LINEINFO, [&]{ using namespace Catch::Generators; return makeGenerators( __VA_ARGS__ ); } ) //NOLINT(google-build-using-namespace)
 
 // end catch_generators.hpp
 // start catch_generators_generic.hpp
@@ -4409,6 +4424,7 @@ namespace Catch {
 } // end namespace Catch
 
 // end catch_option.hpp
+#include <chrono>
 #include <iosfwd>
 #include <string>
 #include <vector>
@@ -4479,6 +4495,7 @@ namespace Catch {
         virtual int benchmarkSamples() const = 0;
         virtual double benchmarkConfidenceInterval() const = 0;
         virtual unsigned int benchmarkResamples() const = 0;
+        virtual std::chrono::milliseconds benchmarkWarmupTime() const = 0;
     };
 
     using IConfigPtr = std::shared_ptr<IConfig const>;
@@ -5232,6 +5249,7 @@ namespace Catch {
         unsigned int benchmarkSamples = 100;
         double benchmarkConfidenceInterval = 0.95;
         unsigned int benchmarkResamples = 100000;
+        std::chrono::milliseconds::rep benchmarkWarmupTime = 100;
 
         Verbosity verbosity = Verbosity::Normal;
         WarnAbout::What warnings = WarnAbout::Nothing;
@@ -5297,6 +5315,7 @@ namespace Catch {
         int benchmarkSamples() const override;
         double benchmarkConfidenceInterval() const override;
         unsigned int benchmarkResamples() const override;
+        std::chrono::milliseconds benchmarkWarmupTime() const override;
 
     private:
 
@@ -6882,11 +6901,13 @@ namespace Catch {
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <iterator>
 #include <numeric>
 #include <tuple>
 #include <cmath>
 #include <utility>
 #include <cstddef>
+#include <random>
 
 namespace Catch {
     namespace Benchmark {
@@ -7236,10 +7257,10 @@ namespace Catch {
             template <typename Clock>
             ExecutionPlan<FloatDuration<Clock>> prepare(const IConfig &cfg, Environment<FloatDuration<Clock>> env) const {
                 auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;
-                auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(Detail::warmup_time));
+                auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg.benchmarkWarmupTime()));
                 auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<ClockDuration<Clock>>(run_time), 1, fun);
                 int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));
-                return { new_iters, test.elapsed / test.iterations * new_iters * cfg.benchmarkSamples(), fun, std::chrono::duration_cast<FloatDuration<Clock>>(Detail::warmup_time), Detail::warmup_iterations };
+                return { new_iters, test.elapsed / test.iterations * new_iters * cfg.benchmarkSamples(), fun, std::chrono::duration_cast<FloatDuration<Clock>>(cfg.benchmarkWarmupTime()), Detail::warmup_iterations };
             }
 
             template <typename Clock = default_clock>
@@ -7320,60 +7341,65 @@ namespace Catch {
 #include <type_traits>
 
 namespace Catch {
-    namespace Detail {
-        template <typename T, bool Destruct>
-        struct ObjectStorage
-        {
-            using TStorage = typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type;
-
-            ObjectStorage() : data() {}
-
-            ObjectStorage(const ObjectStorage& other)
+    namespace Benchmark {
+        namespace Detail {
+            template <typename T, bool Destruct>
+            struct ObjectStorage
             {
-                new(&data) T(other.stored_object());
-            }
+                using TStorage = typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type;
 
-            ObjectStorage(ObjectStorage&& other)
-            {
-                new(&data) T(std::move(other.stored_object()));
-            }
+                ObjectStorage() : data() {}
 
-            ~ObjectStorage() { destruct_on_exit<T>(); }
+                ObjectStorage(const ObjectStorage& other)
+                {
+                    new(&data) T(other.stored_object());
+                }
 
-            template <typename... Args>
-            void construct(Args&&... args)
-            {
-                new (&data) T(std::forward<Args>(args)...);
-            }
+                ObjectStorage(ObjectStorage&& other)
+                {
+                    new(&data) T(std::move(other.stored_object()));
+                }
 
-            template <bool AllowManualDestruction = !Destruct>
-            typename std::enable_if<AllowManualDestruction>::type destruct()
-            {
-                stored_object().~T();
-            }
+                ~ObjectStorage() { destruct_on_exit<T>(); }
 
-        private:
-            // If this is a constructor benchmark, destruct the underlying object
-            template <typename U>
-            void destruct_on_exit(typename std::enable_if<Destruct, U>::type* = 0) { destruct<true>(); }
-            // Otherwise, don't
-            template <typename U>
-            void destruct_on_exit(typename std::enable_if<!Destruct, U>::type* = 0) { }
+                template <typename... Args>
+                void construct(Args&&... args)
+                {
+                    new (&data) T(std::forward<Args>(args)...);
+                }
 
-            T& stored_object()
-            {
-                return *static_cast<T*>(static_cast<void*>(&data));
-            }
+                template <bool AllowManualDestruction = !Destruct>
+                typename std::enable_if<AllowManualDestruction>::type destruct()
+                {
+                    stored_object().~T();
+                }
 
-            TStorage data;
-        };
+            private:
+                // If this is a constructor benchmark, destruct the underlying object
+                template <typename U>
+                void destruct_on_exit(typename std::enable_if<Destruct, U>::type* = 0) { destruct<true>(); }
+                // Otherwise, don't
+                template <typename U>
+                void destruct_on_exit(typename std::enable_if<!Destruct, U>::type* = 0) { }
+
+                T& stored_object() {
+                    return *static_cast<T*>(static_cast<void*>(&data));
+                }
+
+                T const& stored_object() const {
+                    return *static_cast<T*>(static_cast<void*>(&data));
+                }
+
+                TStorage data;
+            };
+        }
+
+        template <typename T>
+        using storage_for = Detail::ObjectStorage<T, true>;
+
+        template <typename T>
+        using destructable_object = Detail::ObjectStorage<T, false>;
     }
-
-    template <typename T>
-    using storage_for = Detail::ObjectStorage<T, true>;
-
-    template <typename T>
-    using destructable_object = Detail::ObjectStorage<T, false>;
 }
 
 // end catch_constructor.hpp
@@ -7854,6 +7880,19 @@ namespace Catch {
 
     #define CATCH_TRAP() __asm__("int $3\n" : : ) /* NOLINT */
 
+#elif defined(CATCH_PLATFORM_IPHONE)
+
+    // use inline assembler
+    #if defined(__i386__) || defined(__x86_64__)
+        #define CATCH_TRAP()  __asm__("int $3")
+    #elif defined(__aarch64__)
+        #define CATCH_TRAP()  __asm__(".inst 0xd4200000")
+    #elif defined(__arm__) && !defined(__thumb__)
+        #define CATCH_TRAP()  __asm__(".inst 0xe7f001f0")
+    #elif defined(__arm__) &&  defined(__thumb__)
+        #define CATCH_TRAP()  __asm__(".inst 0xde01")
+    #endif
+
 #elif defined(CATCH_PLATFORM_LINUX)
     // If we can use inline assembler, do it because this allows us to break
     // directly at the location of the failing check instead of breaking inside
@@ -7872,10 +7911,12 @@ namespace Catch {
     #define CATCH_TRAP() DebugBreak()
 #endif
 
-#ifdef CATCH_TRAP
-    #define CATCH_BREAK_INTO_DEBUGGER() []{ if( Catch::isDebuggerActive() ) { CATCH_TRAP(); } }()
-#else
-    #define CATCH_BREAK_INTO_DEBUGGER() []{}()
+#ifndef CATCH_BREAK_INTO_DEBUGGER
+    #ifdef CATCH_TRAP
+        #define CATCH_BREAK_INTO_DEBUGGER() []{ if( Catch::isDebuggerActive() ) { CATCH_TRAP(); } }()
+    #else
+        #define CATCH_BREAK_INTO_DEBUGGER() []{}()
+    #endif
 #endif
 
 // end catch_debugger.h
@@ -8390,312 +8431,312 @@ namespace clara {
 namespace TextFlow {
 
 inline auto isWhitespace(char c) -> bool {
-    static std::string chars = " \t\n\r";
-    return chars.find(c) != std::string::npos;
+	static std::string chars = " \t\n\r";
+	return chars.find(c) != std::string::npos;
 }
 inline auto isBreakableBefore(char c) -> bool {
-    static std::string chars = "[({<|";
-    return chars.find(c) != std::string::npos;
+	static std::string chars = "[({<|";
+	return chars.find(c) != std::string::npos;
 }
 inline auto isBreakableAfter(char c) -> bool {
-    static std::string chars = "])}>.,:;*+-=&/\\";
-    return chars.find(c) != std::string::npos;
+	static std::string chars = "])}>.,:;*+-=&/\\";
+	return chars.find(c) != std::string::npos;
 }
 
 class Columns;
 
 class Column {
-    std::vector<std::string> m_strings;
-    size_t m_width = CATCH_CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;
-    size_t m_indent = 0;
-    size_t m_initialIndent = std::string::npos;
+	std::vector<std::string> m_strings;
+	size_t m_width = CATCH_CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;
+	size_t m_indent = 0;
+	size_t m_initialIndent = std::string::npos;
 
 public:
-    class iterator {
-        friend Column;
+	class iterator {
+		friend Column;
 
-        Column const& m_column;
-        size_t m_stringIndex = 0;
-        size_t m_pos = 0;
+		Column const& m_column;
+		size_t m_stringIndex = 0;
+		size_t m_pos = 0;
 
-        size_t m_len = 0;
-        size_t m_end = 0;
-        bool m_suffix = false;
+		size_t m_len = 0;
+		size_t m_end = 0;
+		bool m_suffix = false;
 
-        iterator(Column const& column, size_t stringIndex)
-            : m_column(column),
-            m_stringIndex(stringIndex) {}
+		iterator(Column const& column, size_t stringIndex)
+			: m_column(column),
+			m_stringIndex(stringIndex) {}
 
-        auto line() const -> std::string const& { return m_column.m_strings[m_stringIndex]; }
+		auto line() const -> std::string const& { return m_column.m_strings[m_stringIndex]; }
 
-        auto isBoundary(size_t at) const -> bool {
-            assert(at > 0);
-            assert(at <= line().size());
+		auto isBoundary(size_t at) const -> bool {
+			assert(at > 0);
+			assert(at <= line().size());
 
-            return at == line().size() ||
-                (isWhitespace(line()[at]) && !isWhitespace(line()[at - 1])) ||
-                isBreakableBefore(line()[at]) ||
-                isBreakableAfter(line()[at - 1]);
-        }
+			return at == line().size() ||
+				(isWhitespace(line()[at]) && !isWhitespace(line()[at - 1])) ||
+				isBreakableBefore(line()[at]) ||
+				isBreakableAfter(line()[at - 1]);
+		}
 
-        void calcLength() {
-            assert(m_stringIndex < m_column.m_strings.size());
+		void calcLength() {
+			assert(m_stringIndex < m_column.m_strings.size());
 
-            m_suffix = false;
-            auto width = m_column.m_width - indent();
-            m_end = m_pos;
-            if (line()[m_pos] == '\n') {
-                ++m_end;
-            }
-            while (m_end < line().size() && line()[m_end] != '\n')
-                ++m_end;
+			m_suffix = false;
+			auto width = m_column.m_width - indent();
+			m_end = m_pos;
+			if (line()[m_pos] == '\n') {
+				++m_end;
+			}
+			while (m_end < line().size() && line()[m_end] != '\n')
+				++m_end;
 
-            if (m_end < m_pos + width) {
-                m_len = m_end - m_pos;
-            } else {
-                size_t len = width;
-                while (len > 0 && !isBoundary(m_pos + len))
-                    --len;
-                while (len > 0 && isWhitespace(line()[m_pos + len - 1]))
-                    --len;
+			if (m_end < m_pos + width) {
+				m_len = m_end - m_pos;
+			} else {
+				size_t len = width;
+				while (len > 0 && !isBoundary(m_pos + len))
+					--len;
+				while (len > 0 && isWhitespace(line()[m_pos + len - 1]))
+					--len;
 
-                if (len > 0) {
-                    m_len = len;
-                } else {
-                    m_suffix = true;
-                    m_len = width - 1;
-                }
-            }
-        }
+				if (len > 0) {
+					m_len = len;
+				} else {
+					m_suffix = true;
+					m_len = width - 1;
+				}
+			}
+		}
 
-        auto indent() const -> size_t {
-            auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_initialIndent : std::string::npos;
-            return initial == std::string::npos ? m_column.m_indent : initial;
-        }
+		auto indent() const -> size_t {
+			auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_initialIndent : std::string::npos;
+			return initial == std::string::npos ? m_column.m_indent : initial;
+		}
 
-        auto addIndentAndSuffix(std::string const &plain) const -> std::string {
-            return std::string(indent(), ' ') + (m_suffix ? plain + "-" : plain);
-        }
+		auto addIndentAndSuffix(std::string const &plain) const -> std::string {
+			return std::string(indent(), ' ') + (m_suffix ? plain + "-" : plain);
+		}
 
-    public:
-        using difference_type = std::ptrdiff_t;
-        using value_type = std::string;
-        using pointer = value_type * ;
-        using reference = value_type & ;
-        using iterator_category = std::forward_iterator_tag;
+	public:
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::string;
+		using pointer = value_type * ;
+		using reference = value_type & ;
+		using iterator_category = std::forward_iterator_tag;
 
-        explicit iterator(Column const& column) : m_column(column) {
-            assert(m_column.m_width > m_column.m_indent);
-            assert(m_column.m_initialIndent == std::string::npos || m_column.m_width > m_column.m_initialIndent);
-            calcLength();
-            if (m_len == 0)
-                m_stringIndex++; // Empty string
-        }
+		explicit iterator(Column const& column) : m_column(column) {
+			assert(m_column.m_width > m_column.m_indent);
+			assert(m_column.m_initialIndent == std::string::npos || m_column.m_width > m_column.m_initialIndent);
+			calcLength();
+			if (m_len == 0)
+				m_stringIndex++; // Empty string
+		}
 
-        auto operator *() const -> std::string {
-            assert(m_stringIndex < m_column.m_strings.size());
-            assert(m_pos <= m_end);
-            return addIndentAndSuffix(line().substr(m_pos, m_len));
-        }
+		auto operator *() const -> std::string {
+			assert(m_stringIndex < m_column.m_strings.size());
+			assert(m_pos <= m_end);
+			return addIndentAndSuffix(line().substr(m_pos, m_len));
+		}
 
-        auto operator ++() -> iterator& {
-            m_pos += m_len;
-            if (m_pos < line().size() && line()[m_pos] == '\n')
-                m_pos += 1;
-            else
-                while (m_pos < line().size() && isWhitespace(line()[m_pos]))
-                    ++m_pos;
+		auto operator ++() -> iterator& {
+			m_pos += m_len;
+			if (m_pos < line().size() && line()[m_pos] == '\n')
+				m_pos += 1;
+			else
+				while (m_pos < line().size() && isWhitespace(line()[m_pos]))
+					++m_pos;
 
-            if (m_pos == line().size()) {
-                m_pos = 0;
-                ++m_stringIndex;
-            }
-            if (m_stringIndex < m_column.m_strings.size())
-                calcLength();
-            return *this;
-        }
-        auto operator ++(int) -> iterator {
-            iterator prev(*this);
-            operator++();
-            return prev;
-        }
+			if (m_pos == line().size()) {
+				m_pos = 0;
+				++m_stringIndex;
+			}
+			if (m_stringIndex < m_column.m_strings.size())
+				calcLength();
+			return *this;
+		}
+		auto operator ++(int) -> iterator {
+			iterator prev(*this);
+			operator++();
+			return prev;
+		}
 
-        auto operator ==(iterator const& other) const -> bool {
-            return
-                m_pos == other.m_pos &&
-                m_stringIndex == other.m_stringIndex &&
-                &m_column == &other.m_column;
-        }
-        auto operator !=(iterator const& other) const -> bool {
-            return !operator==(other);
-        }
-    };
-    using const_iterator = iterator;
+		auto operator ==(iterator const& other) const -> bool {
+			return
+				m_pos == other.m_pos &&
+				m_stringIndex == other.m_stringIndex &&
+				&m_column == &other.m_column;
+		}
+		auto operator !=(iterator const& other) const -> bool {
+			return !operator==(other);
+		}
+	};
+	using const_iterator = iterator;
 
-    explicit Column(std::string const& text) { m_strings.push_back(text); }
+	explicit Column(std::string const& text) { m_strings.push_back(text); }
 
-    auto width(size_t newWidth) -> Column& {
-        assert(newWidth > 0);
-        m_width = newWidth;
-        return *this;
-    }
-    auto indent(size_t newIndent) -> Column& {
-        m_indent = newIndent;
-        return *this;
-    }
-    auto initialIndent(size_t newIndent) -> Column& {
-        m_initialIndent = newIndent;
-        return *this;
-    }
+	auto width(size_t newWidth) -> Column& {
+		assert(newWidth > 0);
+		m_width = newWidth;
+		return *this;
+	}
+	auto indent(size_t newIndent) -> Column& {
+		m_indent = newIndent;
+		return *this;
+	}
+	auto initialIndent(size_t newIndent) -> Column& {
+		m_initialIndent = newIndent;
+		return *this;
+	}
 
-    auto width() const -> size_t { return m_width; }
-    auto begin() const -> iterator { return iterator(*this); }
-    auto end() const -> iterator { return { *this, m_strings.size() }; }
+	auto width() const -> size_t { return m_width; }
+	auto begin() const -> iterator { return iterator(*this); }
+	auto end() const -> iterator { return { *this, m_strings.size() }; }
 
-    inline friend std::ostream& operator << (std::ostream& os, Column const& col) {
-        bool first = true;
-        for (auto line : col) {
-            if (first)
-                first = false;
-            else
-                os << "\n";
-            os << line;
-        }
-        return os;
-    }
+	inline friend std::ostream& operator << (std::ostream& os, Column const& col) {
+		bool first = true;
+		for (auto line : col) {
+			if (first)
+				first = false;
+			else
+				os << "\n";
+			os << line;
+		}
+		return os;
+	}
 
-    auto operator + (Column const& other)->Columns;
+	auto operator + (Column const& other)->Columns;
 
-    auto toString() const -> std::string {
-        std::ostringstream oss;
-        oss << *this;
-        return oss.str();
-    }
+	auto toString() const -> std::string {
+		std::ostringstream oss;
+		oss << *this;
+		return oss.str();
+	}
 };
 
 class Spacer : public Column {
 
 public:
-    explicit Spacer(size_t spaceWidth) : Column("") {
-        width(spaceWidth);
-    }
+	explicit Spacer(size_t spaceWidth) : Column("") {
+		width(spaceWidth);
+	}
 };
 
 class Columns {
-    std::vector<Column> m_columns;
+	std::vector<Column> m_columns;
 
 public:
 
-    class iterator {
-        friend Columns;
-        struct EndTag {};
+	class iterator {
+		friend Columns;
+		struct EndTag {};
 
-        std::vector<Column> const& m_columns;
-        std::vector<Column::iterator> m_iterators;
-        size_t m_activeIterators;
+		std::vector<Column> const& m_columns;
+		std::vector<Column::iterator> m_iterators;
+		size_t m_activeIterators;
 
-        iterator(Columns const& columns, EndTag)
-            : m_columns(columns.m_columns),
-            m_activeIterators(0) {
-            m_iterators.reserve(m_columns.size());
+		iterator(Columns const& columns, EndTag)
+			: m_columns(columns.m_columns),
+			m_activeIterators(0) {
+			m_iterators.reserve(m_columns.size());
 
-            for (auto const& col : m_columns)
-                m_iterators.push_back(col.end());
-        }
+			for (auto const& col : m_columns)
+				m_iterators.push_back(col.end());
+		}
 
-    public:
-        using difference_type = std::ptrdiff_t;
-        using value_type = std::string;
-        using pointer = value_type * ;
-        using reference = value_type & ;
-        using iterator_category = std::forward_iterator_tag;
+	public:
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::string;
+		using pointer = value_type * ;
+		using reference = value_type & ;
+		using iterator_category = std::forward_iterator_tag;
 
-        explicit iterator(Columns const& columns)
-            : m_columns(columns.m_columns),
-            m_activeIterators(m_columns.size()) {
-            m_iterators.reserve(m_columns.size());
+		explicit iterator(Columns const& columns)
+			: m_columns(columns.m_columns),
+			m_activeIterators(m_columns.size()) {
+			m_iterators.reserve(m_columns.size());
 
-            for (auto const& col : m_columns)
-                m_iterators.push_back(col.begin());
-        }
+			for (auto const& col : m_columns)
+				m_iterators.push_back(col.begin());
+		}
 
-        auto operator ==(iterator const& other) const -> bool {
-            return m_iterators == other.m_iterators;
-        }
-        auto operator !=(iterator const& other) const -> bool {
-            return m_iterators != other.m_iterators;
-        }
-        auto operator *() const -> std::string {
-            std::string row, padding;
+		auto operator ==(iterator const& other) const -> bool {
+			return m_iterators == other.m_iterators;
+		}
+		auto operator !=(iterator const& other) const -> bool {
+			return m_iterators != other.m_iterators;
+		}
+		auto operator *() const -> std::string {
+			std::string row, padding;
 
-            for (size_t i = 0; i < m_columns.size(); ++i) {
-                auto width = m_columns[i].width();
-                if (m_iterators[i] != m_columns[i].end()) {
-                    std::string col = *m_iterators[i];
-                    row += padding + col;
-                    if (col.size() < width)
-                        padding = std::string(width - col.size(), ' ');
-                    else
-                        padding = "";
-                } else {
-                    padding += std::string(width, ' ');
-                }
-            }
-            return row;
-        }
-        auto operator ++() -> iterator& {
-            for (size_t i = 0; i < m_columns.size(); ++i) {
-                if (m_iterators[i] != m_columns[i].end())
-                    ++m_iterators[i];
-            }
-            return *this;
-        }
-        auto operator ++(int) -> iterator {
-            iterator prev(*this);
-            operator++();
-            return prev;
-        }
-    };
-    using const_iterator = iterator;
+			for (size_t i = 0; i < m_columns.size(); ++i) {
+				auto width = m_columns[i].width();
+				if (m_iterators[i] != m_columns[i].end()) {
+					std::string col = *m_iterators[i];
+					row += padding + col;
+					if (col.size() < width)
+						padding = std::string(width - col.size(), ' ');
+					else
+						padding = "";
+				} else {
+					padding += std::string(width, ' ');
+				}
+			}
+			return row;
+		}
+		auto operator ++() -> iterator& {
+			for (size_t i = 0; i < m_columns.size(); ++i) {
+				if (m_iterators[i] != m_columns[i].end())
+					++m_iterators[i];
+			}
+			return *this;
+		}
+		auto operator ++(int) -> iterator {
+			iterator prev(*this);
+			operator++();
+			return prev;
+		}
+	};
+	using const_iterator = iterator;
 
-    auto begin() const -> iterator { return iterator(*this); }
-    auto end() const -> iterator { return { *this, iterator::EndTag() }; }
+	auto begin() const -> iterator { return iterator(*this); }
+	auto end() const -> iterator { return { *this, iterator::EndTag() }; }
 
-    auto operator += (Column const& col) -> Columns& {
-        m_columns.push_back(col);
-        return *this;
-    }
-    auto operator + (Column const& col) -> Columns {
-        Columns combined = *this;
-        combined += col;
-        return combined;
-    }
+	auto operator += (Column const& col) -> Columns& {
+		m_columns.push_back(col);
+		return *this;
+	}
+	auto operator + (Column const& col) -> Columns {
+		Columns combined = *this;
+		combined += col;
+		return combined;
+	}
 
-    inline friend std::ostream& operator << (std::ostream& os, Columns const& cols) {
+	inline friend std::ostream& operator << (std::ostream& os, Columns const& cols) {
 
-        bool first = true;
-        for (auto line : cols) {
-            if (first)
-                first = false;
-            else
-                os << "\n";
-            os << line;
-        }
-        return os;
-    }
+		bool first = true;
+		for (auto line : cols) {
+			if (first)
+				first = false;
+			else
+				os << "\n";
+			os << line;
+		}
+		return os;
+	}
 
-    auto toString() const -> std::string {
-        std::ostringstream oss;
-        oss << *this;
-        return oss.str();
-    }
+	auto toString() const -> std::string {
+		std::ostringstream oss;
+		oss << *this;
+		return oss.str();
+	}
 };
 
 inline auto Column::operator + (Column const& other) -> Columns {
-    Columns cols;
-    cols += *this;
-    cols += other;
-    return cols;
+	Columns cols;
+	cols += *this;
+	cols += other;
+	return cols;
 }
 }
 
@@ -9154,7 +9195,7 @@ namespace detail {
         template<typename T>
         auto operator|( T const &other ) const -> Parser;
 
-        template<typename T>
+		template<typename T>
         auto operator+( T const &other ) const -> Parser;
     };
 
@@ -9647,8 +9688,7 @@ namespace Catch {
                         if( !startsWith( line, '"' ) )
                             line = '"' + line + '"';
                         config.testsOrTags.push_back( line );
-                        config.testsOrTags.push_back( "," );
-
+                        config.testsOrTags.emplace_back( "," );
                     }
                 }
                 //Remove comma in the end
@@ -9689,14 +9729,16 @@ namespace Catch {
             };
         auto const setWaitForKeypress = [&]( std::string const& keypress ) {
                 auto keypressLc = toLower( keypress );
-                if( keypressLc == "start" )
+                if (keypressLc == "never")
+                    config.waitForKeypress = WaitForKeypress::Never;
+                else if( keypressLc == "start" )
                     config.waitForKeypress = WaitForKeypress::BeforeStart;
                 else if( keypressLc == "exit" )
                     config.waitForKeypress = WaitForKeypress::BeforeExit;
                 else if( keypressLc == "both" )
                     config.waitForKeypress = WaitForKeypress::BeforeStartAndExit;
                 else
-                    return ParserResult::runtimeError( "keypress argument must be one of: start, exit or both. '" + keypress + "' not recognised" );
+                    return ParserResult::runtimeError( "keypress argument must be one of: never, start, exit or both. '" + keypress + "' not recognised" );
             return ParserResult::ok( ParseResultType::Matched );
             };
         auto const setVerbosity = [&]( std::string const& verbosity ) {
@@ -9796,7 +9838,7 @@ namespace Catch {
             | Opt( config.libIdentify )
                 ["--libidentify"]
                 ( "report name and version according to libidentify standard" )
-            | Opt( setWaitForKeypress, "start|exit|both" )
+            | Opt( setWaitForKeypress, "never|start|exit|both" )
                 ["--wait-for-keypress"]
                 ( "waits for a keypress before exiting" )
             | Opt( config.benchmarkSamples, "samples" )
@@ -9811,6 +9853,9 @@ namespace Catch {
             | Opt( config.benchmarkNoAnalysis )
                 ["--benchmark-no-analysis"]
                 ( "perform only measurements; do not perform any analysis" )
+            | Opt( config.benchmarkWarmupTime, "benchmarkWarmupTime" )
+                ["--benchmark-warmup-time"]
+                ( "amount of time in milliseconds spent on warming up each test (default: 100)" )
             | Arg( config.testsOrTags, "test name|pattern|tags" )
                 ( "which test or tests to use" );
 
@@ -9918,10 +9963,11 @@ namespace Catch {
     bool Config::showInvisibles() const                { return m_data.showInvisibles; }
     Verbosity Config::verbosity() const                { return m_data.verbosity; }
 
-    bool Config::benchmarkNoAnalysis() const           { return m_data.benchmarkNoAnalysis; }
-    int Config::benchmarkSamples() const               { return m_data.benchmarkSamples; }
-    double Config::benchmarkConfidenceInterval() const { return m_data.benchmarkConfidenceInterval; }
-    unsigned int Config::benchmarkResamples() const    { return m_data.benchmarkResamples; }
+    bool Config::benchmarkNoAnalysis() const                      { return m_data.benchmarkNoAnalysis; }
+    int Config::benchmarkSamples() const                          { return m_data.benchmarkSamples; }
+    double Config::benchmarkConfidenceInterval() const            { return m_data.benchmarkConfidenceInterval; }
+    unsigned int Config::benchmarkResamples() const               { return m_data.benchmarkResamples; }
+    std::chrono::milliseconds Config::benchmarkWarmupTime() const { return std::chrono::milliseconds(m_data.benchmarkWarmupTime); }
 
     IStream const* Config::openStream() {
         return Catch::makeStream(m_data.outputFilename);
@@ -9962,7 +10008,7 @@ namespace Catch {
         };
 
         struct NoColourImpl : IColourImpl {
-            void use( Colour::Code ) {}
+            void use( Colour::Code ) override {}
 
             static IColourImpl* instance() {
                 static NoColourImpl s_instance;
@@ -10094,7 +10140,7 @@ namespace {
 
     bool useColourOnPlatform() {
         return
-#ifdef CATCH_PLATFORM_MAC
+#if defined(CATCH_PLATFORM_MAC) || defined(CATCH_PLATFORM_IPHONE)
             !isDebuggerActive() &&
 #endif
 #if !(defined(__DJGPP__) && defined(__STRICT_ANSI__))
@@ -10135,13 +10181,13 @@ namespace Catch {
 namespace Catch {
 
     Colour::Colour( Code _colourCode ) { use( _colourCode ); }
-    Colour::Colour( Colour&& rhs ) noexcept {
-        m_moved = rhs.m_moved;
-        rhs.m_moved = true;
+    Colour::Colour( Colour&& other ) noexcept {
+        m_moved = other.m_moved;
+        other.m_moved = true;
     }
-    Colour& Colour::operator=( Colour&& rhs ) noexcept {
-        m_moved = rhs.m_moved;
-        rhs.m_moved  = true;
+    Colour& Colour::operator=( Colour&& other ) noexcept {
+        m_moved = other.m_moved;
+        other.m_moved  = true;
         return *this;
     }
 
@@ -10153,7 +10199,7 @@ namespace Catch {
         // However, under some conditions it does happen (see #1626),
         // and this change is small enough that we can let practicality
         // triumph over purity in this case.
-        if (impl != NULL) {
+        if (impl != nullptr) {
             impl->use( _colourCode );
         }
     }
@@ -10271,7 +10317,7 @@ namespace Catch {
 // end catch_debug_console.cpp
 // start catch_debugger.cpp
 
-#ifdef CATCH_PLATFORM_MAC
+#if defined(CATCH_PLATFORM_MAC) || defined(CATCH_PLATFORM_IPHONE)
 
 #  include <assert.h>
 #  include <stdbool.h>
@@ -10506,7 +10552,7 @@ namespace Catch {
             assert( valueNames.size() == values.size() );
             std::size_t i = 0;
             for( auto value : values )
-                enumInfo->m_values.push_back({ value, valueNames[i++] });
+                enumInfo->m_values.emplace_back(value, valueNames[i++]);
 
             return enumInfo;
         }
@@ -11082,7 +11128,7 @@ namespace Catch {
 namespace Catch {
 
     std::size_t listTests( Config const& config ) {
-        TestSpec testSpec = config.testSpec();
+        TestSpec const& testSpec = config.testSpec();
         if( config.hasTestFilters() )
             Catch::cout() << "Matching test cases:\n";
         else {
@@ -11116,7 +11162,7 @@ namespace Catch {
     }
 
     std::size_t listTestsNamesOnly( Config const& config ) {
-        TestSpec testSpec = config.testSpec();
+        TestSpec const& testSpec = config.testSpec();
         std::size_t matchedTests = 0;
         std::vector<TestCase> matchedTestCases = filterTests( getAllTestCasesSorted( config ), testSpec, config );
         for( auto const& testCaseInfo : matchedTestCases ) {
@@ -11154,7 +11200,7 @@ namespace Catch {
     }
 
     std::size_t listTags( Config const& config ) {
-        TestSpec testSpec = config.testSpec();
+        TestSpec const& testSpec = config.testSpec();
         if( config.hasTestFilters() )
             Catch::cout() << "Tags for matching test cases:\n";
         else {
@@ -11346,15 +11392,7 @@ namespace {
         return static_cast<uint64_t>(ulpDiff) <= maxUlpDiff;
     }
 
-} //end anonymous namespace
-
 #if defined(CATCH_CONFIG_GLOBAL_NEXTAFTER)
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-// The long double overload is currently unused
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
 
     float nextafter(float x, float y) {
         return ::nextafterf(x, y);
@@ -11364,17 +11402,7 @@ namespace {
         return ::nextafter(x, y);
     }
 
-    long double nextafter(long double x, long double y) {
-        return ::nextafterl(x, y);
-    }
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-
 #endif // ^^^ CATCH_CONFIG_GLOBAL_NEXTAFTER ^^^
-
-namespace {
 
 template <typename FP>
 FP step(FP start, FP direction, uint64_t steps) {
@@ -11754,7 +11782,7 @@ namespace Catch {
                 pos = skipq(pos, c);
                 break;
             case ',':
-                if (start != pos && openings.size() == 0) {
+                if (start != pos && openings.empty()) {
                     m_messages.emplace_back(macroName, lineInfo, resultType);
                     m_messages.back().message = static_cast<std::string>(trimmed(start, pos));
                     m_messages.back().message += " := ";
@@ -11762,7 +11790,7 @@ namespace Catch {
                 }
             }
         }
-        assert(openings.size() == 0 && "Mismatched openings");
+        assert(openings.empty() && "Mismatched openings");
         m_messages.emplace_back(macroName, lineInfo, resultType);
         m_messages.back().message = static_cast<std::string>(trimmed(start, names.size() - 1));
         m_messages.back().message += " := ";
@@ -12643,17 +12671,17 @@ namespace Catch {
 
 #if defined(CATCH_CONFIG_ENABLE_BENCHMARKING)
     void RunContext::benchmarkPreparing(std::string const& name) {
-        m_reporter->benchmarkPreparing(name);
-    }
+		m_reporter->benchmarkPreparing(name);
+	}
     void RunContext::benchmarkStarting( BenchmarkInfo const& info ) {
         m_reporter->benchmarkStarting( info );
     }
     void RunContext::benchmarkEnded( BenchmarkStats<> const& stats ) {
         m_reporter->benchmarkEnded( stats );
     }
-    void RunContext::benchmarkFailed(std::string const & error) {
-        m_reporter->benchmarkFailed(error);
-    }
+	void RunContext::benchmarkFailed(std::string const & error) {
+		m_reporter->benchmarkFailed(error);
+	}
 #endif // CATCH_CONFIG_ENABLE_BENCHMARKING
 
     void RunContext::pushScopedMessage(MessageInfo const & message) {
@@ -13250,11 +13278,11 @@ namespace Catch {
         char **utf8Argv = new char *[ argc ];
 
         for ( int i = 0; i < argc; ++i ) {
-            int bufSize = WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, NULL, 0, NULL, NULL );
+            int bufSize = WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr );
 
             utf8Argv[ i ] = new char[ bufSize ];
 
-            WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, utf8Argv[i], bufSize, NULL, NULL );
+            WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, utf8Argv[i], bufSize, nullptr, nullptr );
         }
 
         int returnCode = applyCommandLine( argc, utf8Argv );
@@ -13853,7 +13881,8 @@ namespace Catch {
             }
         }
         if( isHidden ) {
-            tags.push_back( "." );
+            // Add all "hidden" tags to make them behave identically
+            tags.insert( tags.end(), { ".", "!hide" } );
         }
 
         TestCaseInfo info( static_cast<std::string>(nameAndTags.name), _className, desc, tags, _lineInfo );
@@ -14264,8 +14293,8 @@ namespace TestCaseTracking {
     void SectionTracker::addInitialFilters( std::vector<std::string> const& filters ) {
         if( !filters.empty() ) {
             m_filters.reserve( m_filters.size() + filters.size() + 2 );
-            m_filters.push_back(""); // Root - should never be consulted
-            m_filters.push_back(""); // Test Case - not a section filter
+            m_filters.emplace_back(""); // Root - should never be consulted
+            m_filters.emplace_back(""); // Test Case - not a section filter
             m_filters.insert( m_filters.end(), filters.begin(), filters.end() );
         }
     }
@@ -15050,7 +15079,7 @@ namespace Catch {
     }
 
     Version const& libraryVersion() {
-        static Version version( 2, 11, 0, "", 0 );
+        static Version version( 2, 11, 3, "", 0 );
         return version;
     }
 
@@ -15099,8 +15128,6 @@ namespace Catch {
 
 #include <iomanip>
 #include <type_traits>
-
-using uchar = unsigned char;
 
 namespace Catch {
 
@@ -15174,7 +15201,7 @@ namespace {
         // (see: http://www.w3.org/TR/xml/#syntax)
 
         for( std::size_t idx = 0; idx < m_str.size(); ++ idx ) {
-            uchar c = m_str[idx];
+            unsigned char c = m_str[idx];
             switch (c) {
             case '<':   os << "&lt;"; break;
             case '&':   os << "&amp;"; break;
@@ -15234,7 +15261,7 @@ namespace {
                 bool valid = true;
                 uint32_t value = headerValue(c);
                 for (std::size_t n = 1; n < encBytes; ++n) {
-                    uchar nc = m_str[idx + n];
+                    unsigned char nc = m_str[idx + n];
                     valid &= ((nc & 0xC0) == 0x80);
                     value = (value << 6) | (nc & 0x3F);
                 }
@@ -15963,15 +15990,11 @@ class Duration {
     static const uint64_t s_nanosecondsInASecond = 1000 * s_nanosecondsInAMillisecond;
     static const uint64_t s_nanosecondsInAMinute = 60 * s_nanosecondsInASecond;
 
-    uint64_t m_inNanoseconds;
+    double m_inNanoseconds;
     Unit m_units;
 
 public:
     explicit Duration(double inNanoseconds, Unit units = Unit::Auto)
-        : Duration(static_cast<uint64_t>(inNanoseconds), units) {
-    }
-
-    explicit Duration(uint64_t inNanoseconds, Unit units = Unit::Auto)
         : m_inNanoseconds(inNanoseconds),
         m_units(units) {
         if (m_units == Unit::Auto) {
@@ -16000,7 +16023,7 @@ public:
         case Unit::Minutes:
             return m_inNanoseconds / static_cast<double>(s_nanosecondsInAMinute);
         default:
-            return static_cast<double>(m_inNanoseconds);
+            return m_inNanoseconds;
         }
     }
     auto unitsAsString() const -> std::string {
@@ -16047,13 +16070,13 @@ public:
             m_isOpen = true;
             *this << RowBreak();
 
-            Columns headerCols;
-            Spacer spacer(2);
-            for (auto const& info : m_columnInfos) {
-                headerCols += Column(info.name).width(static_cast<std::size_t>(info.width - 2));
-                headerCols += spacer;
-            }
-            m_os << headerCols << '\n';
+			Columns headerCols;
+			Spacer spacer(2);
+			for (auto const& info : m_columnInfos) {
+				headerCols += Column(info.name).width(static_cast<std::size_t>(info.width - 2));
+				headerCols += spacer;
+			}
+			m_os << headerCols << '\n';
 
             m_os << Catch::getLineOfChars<'-'>() << '\n';
         }
@@ -16186,19 +16209,19 @@ void ConsoleReporter::sectionEnded(SectionStats const& _sectionStats) {
 
 #if defined(CATCH_CONFIG_ENABLE_BENCHMARKING)
 void ConsoleReporter::benchmarkPreparing(std::string const& name) {
-    lazyPrintWithoutClosingBenchmarkTable();
+	lazyPrintWithoutClosingBenchmarkTable();
 
-    auto nameCol = Column(name).width(static_cast<std::size_t>(m_tablePrinter->columnInfos()[0].width - 2));
+	auto nameCol = Column(name).width(static_cast<std::size_t>(m_tablePrinter->columnInfos()[0].width - 2));
 
-    bool firstLine = true;
-    for (auto line : nameCol) {
-        if (!firstLine)
-            (*m_tablePrinter) << ColumnBreak() << ColumnBreak() << ColumnBreak();
-        else
-            firstLine = false;
+	bool firstLine = true;
+	for (auto line : nameCol) {
+		if (!firstLine)
+			(*m_tablePrinter) << ColumnBreak() << ColumnBreak() << ColumnBreak();
+		else
+			firstLine = false;
 
-        (*m_tablePrinter) << line << ColumnBreak();
-    }
+		(*m_tablePrinter) << line << ColumnBreak();
+	}
 }
 
 void ConsoleReporter::benchmarkStarting(BenchmarkInfo const& info) {
@@ -16225,7 +16248,7 @@ void ConsoleReporter::benchmarkEnded(BenchmarkStats<> const& stats) {
 }
 
 void ConsoleReporter::benchmarkFailed(std::string const& error) {
-    Colour colour(Colour::Red);
+	Colour colour(Colour::Red);
     (*m_tablePrinter)
         << "Benchmark failed (" << error << ')'
         << ColumnBreak() << RowBreak();
@@ -16436,8 +16459,10 @@ void ConsoleReporter::printSummaryDivider() {
 }
 
 void ConsoleReporter::printTestFilters() {
-    if (m_config->testSpec().hasFilters())
-        stream << Colour(Colour::BrightYellow) << "Filters: " << serializeFilters( m_config->getTestsOrTags() ) << '\n';
+    if (m_config->testSpec().hasFilters()) {
+        Colour guard(Colour::BrightYellow);
+        stream << "Filters: " << serializeFilters(m_config->getTestsOrTags()) << '\n';
+    }
 }
 
 CATCH_REGISTER_REPORTER("console", ConsoleReporter)
@@ -16663,11 +16688,7 @@ namespace Catch {
                     elementName = "error";
                     break;
                 case ResultWas::ExplicitFailure:
-                    elementName = "failure";
-                    break;
                 case ResultWas::ExpressionFailed:
-                    elementName = "failure";
-                    break;
                 case ResultWas::DidntThrowException:
                     elementName = "failure";
                     break;
@@ -16764,11 +16785,11 @@ namespace Catch {
 
 #if defined(CATCH_CONFIG_ENABLE_BENCHMARKING)
     void ListeningReporter::benchmarkPreparing( std::string const& name ) {
-        for (auto const& listener : m_listeners) {
-            listener->benchmarkPreparing(name);
-        }
-        m_reporter->benchmarkPreparing(name);
-    }
+		for (auto const& listener : m_listeners) {
+			listener->benchmarkPreparing(name);
+		}
+		m_reporter->benchmarkPreparing(name);
+	}
     void ListeningReporter::benchmarkStarting( BenchmarkInfo const& benchmarkInfo ) {
         for ( auto const& listener : m_listeners ) {
             listener->benchmarkStarting( benchmarkInfo );
@@ -16782,12 +16803,12 @@ namespace Catch {
         m_reporter->benchmarkEnded( benchmarkStats );
     }
 
-    void ListeningReporter::benchmarkFailed( std::string const& error ) {
-        for (auto const& listener : m_listeners) {
-            listener->benchmarkFailed(error);
-        }
-        m_reporter->benchmarkFailed(error);
-    }
+	void ListeningReporter::benchmarkFailed( std::string const& error ) {
+		for (auto const& listener : m_listeners) {
+			listener->benchmarkFailed(error);
+		}
+		m_reporter->benchmarkFailed(error);
+	}
 #endif // CATCH_CONFIG_ENABLE_BENCHMARKING
 
     void ListeningReporter::testRunStarting( TestRunInfo const& testRunInfo ) {
@@ -17093,16 +17114,16 @@ namespace Catch {
         m_xml.writeAttribute("samples", info.samples)
             .writeAttribute("resamples", info.resamples)
             .writeAttribute("iterations", info.iterations)
-            .writeAttribute("clockResolution", static_cast<uint64_t>(info.clockResolution))
-            .writeAttribute("estimatedDuration", static_cast<uint64_t>(info.estimatedDuration))
+            .writeAttribute("clockResolution", info.clockResolution)
+            .writeAttribute("estimatedDuration", info.estimatedDuration)
             .writeComment("All values in nano seconds");
     }
 
     void XmlReporter::benchmarkEnded(BenchmarkStats<> const& benchmarkStats) {
         m_xml.startElement("mean")
-            .writeAttribute("value", static_cast<uint64_t>(benchmarkStats.mean.point.count()))
-            .writeAttribute("lowerBound", static_cast<uint64_t>(benchmarkStats.mean.lower_bound.count()))
-            .writeAttribute("upperBound", static_cast<uint64_t>(benchmarkStats.mean.upper_bound.count()))
+            .writeAttribute("value", benchmarkStats.mean.point.count())
+            .writeAttribute("lowerBound", benchmarkStats.mean.lower_bound.count())
+            .writeAttribute("upperBound", benchmarkStats.mean.upper_bound.count())
             .writeAttribute("ci", benchmarkStats.mean.confidence_interval);
         m_xml.endElement();
         m_xml.startElement("standardDeviation")
@@ -17153,7 +17174,7 @@ namespace Catch {
 
 #ifndef __OBJC__
 
-#if defined(CATCH_CONFIG_WCHAR) && defined(WIN32) && defined(_UNICODE) && !defined(DO_NOT_USE_WMAIN)
+#if defined(CATCH_CONFIG_WCHAR) && defined(CATCH_PLATFORM_WINDOWS) && defined(_UNICODE) && !defined(DO_NOT_USE_WMAIN)
 // Standard C/C++ Win32 Unicode wmain entry point
 extern "C" int wmain (int argc, wchar_t * argv[], wchar_t * []) {
 #else
