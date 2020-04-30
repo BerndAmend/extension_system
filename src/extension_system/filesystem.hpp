@@ -37,8 +37,10 @@ namespace filesystem {
 #if defined(_MSC_VER) && _MSC_VER >= 1700
 #if _MSC_VER < 1912
 using namespace std::tr2::sys;
-#else
+#elif _MSC_VER < 1923
 using namespace std::experimental::filesystem;
+#else
+using namespace std::filesystem;
 #endif
 path canonical(const path& p);
 #elif __has_include(<experimental/filesystem>)
