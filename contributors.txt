@@ -3,3 +3,4 @@ Contributors
 
 Bernd Amend  <bernd.amend+extensionsystem@gmail.com>
 Michael Adam <michael.adam3010+extensionsystem@gmail.com>
+Stefan Rommel <50ty-one@live.de>
