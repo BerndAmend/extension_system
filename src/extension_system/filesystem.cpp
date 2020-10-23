@@ -63,7 +63,7 @@ extension_system::filesystem::path extension_system::filesystem::canonical(const
 #else
     std::array<char, PATH_MAX> buffer{};
     const auto                 path   = p.string();
-    const auto                 result = realpath(path.c_str(), buffer.data());
+    const auto*                result = realpath(path.c_str(), buffer.data());
     if (result == nullptr)
         return p; // couldn't resolve symbolic link
     return std::string(result);
@@ -76,7 +76,7 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
     const std::function<void(const extension_system::filesystem::path& p)> handle_dir
         = [&func, &recursive, &handle_dir](const extension_system::filesystem::path& p) {
               const auto path_string = p.string();
-              auto       dp          = opendir(path_string.c_str());
+              auto*      dp          = opendir(path_string.c_str());
 
               if (dp != nullptr) {
                   dirent* ep{};
