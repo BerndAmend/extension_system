@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2014-2019 Bernd Amend and Michael Adam
+# SPDX-FileCopyrightText: 2014-2020 Bernd Amend and Michael Adam
 # SPDX-License-Identifier: BSL-1.0
 cmake_minimum_required(VERSION 3.11)
 
@@ -15,20 +15,35 @@ if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set(CMAKE_LINK_WHAT_YOU_USE ON)
 
-        add_compile_options(-Wnon-virtual-dtor
-                            -Woverloaded-virtual
-                            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-pedantic>
-                            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.9>:-fstack-protector-strong>
-                            $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,5.0>:-Wno-missing-field-initializers>
-                        )
+        add_compile_options(
+            -Wall -Wextra -Wno-unknown-pragmas -Wwrite-strings
+            -Werror=return-type -Wno-unused-parameter -Wparentheses -Wmissing-include-dirs
+            $<$<COMPILE_LANGUAGE:CXX>:-Wnon-virtual-dtor>
+            $<$<COMPILE_LANGUAGE:CXX>:-Woverloaded-virtual>
+            $<$<COMPILE_LANGUAGE:CXX>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.6>:-Wno-conversion-null>>
+            $<$<COMPILE_LANGUAGE:CXX>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,9.0>:-Wno-deprecated-copy>>
+            $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,5.0>:-Wno-missing-field-initializers>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.6>:-Wenum-compare>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.6>:-Wno-unused-local-typedefs>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.6>:-Wno-ignored-qualifiers>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-pedantic>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-Wlogical-op>
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,6.0>:-Wduplicated-cond>
+            $<$<CONFIG:Release>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,4.9>:-fstack-protector-strong>>
+            $<$<CONFIG:Release>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,5.0>:-Wl,-z,relro,-z,now>>
+            )
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$")
-        add_compile_options(-Wno-c++98-compat -Wno-c++98-compat-pedantic
-                        -Wno-global-constructors -Wno-exit-time-destructors
-                        -Wno-documentation
-                        -Wno-padded
-                        -Wno-weak-vtables
-                        -Wno-reserved-id-macro
-                        -Wno-attributes -Weverything)
+        add_compile_options(
+            -Weverything
+            -Wno-c++98-compat -Wno-c++98-compat-pedantic
+            -Wno-global-constructors -Wno-exit-time-destructors
+            -Wno-documentation
+            -Wno-padded
+            -Wno-weak-vtables
+            -Wno-reserved-id-macro
+            -Wno-attributes
+            $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,3.8>:-fstack-protector-strong>
+            )
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
