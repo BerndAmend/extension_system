@@ -55,7 +55,7 @@ void* DynamicLibrary::getProcAddress(const std::string& name) {
     if (!isValid())
         return nullptr;
 
-    void* func;
+    void* func{};
 #ifdef _WIN32
     static_assert(sizeof(void*) == sizeof(void (*)(void)), "object pointer and function pointer sizes must be equal");
     const auto tmp = GetProcAddress(m_handle, name.c_str());
