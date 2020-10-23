@@ -41,7 +41,7 @@ class StringSearch final {
 public:
     StringSearch(const char* pattern_first, const char* pattern_last)
         : _pattern_first(pattern_first)
-        , _pattern_last(pattern_last) {}
+        , _pattern_last(pattern_last) { }
 
     const char* operator()(const char* first, const char* last) const {
         // HINT: memmem is much slower than std::search
@@ -68,7 +68,7 @@ inline corpusIter getFirstFromPair(corpusIter p) {
 }
 
 ExtensionSystem::ExtensionSystem()
-    : m_message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; }) {}
+    : m_message_handler([](const std::string& msg) { std::cerr << "ExtensionSystem::" << msg << std::endl; }) { }
 
 ExtensionSystem::~ExtensionSystem() noexcept = default;
 
@@ -206,7 +206,7 @@ std::unordered_map<std::string, std::string> ExtensionSystem::parseKeyValue(cons
     std::unordered_map<std::string, std::string> result;
 
     bool successful = split({start, end - 1}, '\0', [&](const std::string& iter) {
-        std::size_t pos = iter.find('=');
+        const auto pos = iter.find('=');
         if (pos == std::string::npos) {
             m_message_handler("addDynamicLibrary: filename=" + filename + " '=' is missing (" + iter + "), ignore extension export"); // NOLINT
             return false;
@@ -248,8 +248,8 @@ ExtensionDescription ExtensionSystem::parse(const std::string& filename, std::un
 
     std::string name;
 
-    auto is_invalid = [&](const std::string& str) {
-        auto iter = desc.find(str);
+    const auto is_invalid = [&](const std::string& str) {
+        const auto iter = desc.find(str);
         if (iter == desc.end()) {
             m_message_handler("addDynamicLibrary: filename=" + filename + " " + name + str + " has to be set"); // NOLINT
             return true;
@@ -293,8 +293,8 @@ ExtensionDescription ExtensionSystem::parse(const std::string& filename, std::un
 }
 
 void ExtensionSystem::removeDynamicLibrary(const std::string& filename) {
-    auto real_filename = getRealFilename(filename);
-    auto iter          = m_known_extensions.find(real_filename);
+    const auto real_filename = getRealFilename(filename);
+    const auto iter          = m_known_extensions.find(real_filename);
     if (iter != m_known_extensions.end())
         m_known_extensions.erase(iter);
 }
@@ -331,10 +331,12 @@ void ExtensionSystem::searchDirectory(const std::string& path, const std::string
 }
 
 std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<std::pair<std::string, std::string>>& metaDataFilter) const {
-    std::unordered_map<std::string, std::unordered_set<std::string>> filter_map;
-
-    for (const auto& f : metaDataFilter)
-        filter_map[f.first].insert(f.second);
+    const auto filter_map = [&] {
+        std::unordered_map<std::string, std::unordered_set<std::string>> m;
+        for (const auto& f : metaDataFilter)
+            m[f.first].insert(f.second);
+        return m;
+    }();
 
     std::vector<ExtensionDescription> result;
 
@@ -344,7 +346,7 @@ std::vector<ExtensionDescription> ExtensionSystem::extensions(const std::vector<
             bool add_extension = true;
 
             for (const auto& filter : filter_map) {
-                auto extended = j.data();
+                const auto& extended = j.data();
 
                 // search extended data if filtered metadata is present
                 auto ext_iter = extended.find(filter.first);

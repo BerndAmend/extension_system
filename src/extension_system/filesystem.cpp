@@ -53,7 +53,7 @@ bool extension_system::filesystem::exists(const extension_system::filesystem::pa
 // NOLINTNEXTLINE(readability-identifier-naming)
 bool extension_system::filesystem::is_directory(const extension_system::filesystem::path& p) {
     const auto  str = p.string();
-    struct stat sb {};
+    struct stat sb { };
     return (stat(str.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
 
@@ -81,8 +81,8 @@ void extension_system::filesystem::forEachFileInDirectory(const extension_system
               if (dp != nullptr) {
                   dirent* ep{};
                   while ((ep = readdir(dp)) != nullptr) {
-                      const std::string      name{ep->d_name};
-                      const filesystem::path full_name = p / name;
+                      const auto name      = std::string{ep->d_name};
+                      const auto full_name = p / name;
 
                       if (name == "." || name == "..")
                           continue;
