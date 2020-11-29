@@ -1,4 +1,4 @@
-/// SPDX-FileCopyrightText: 2014-2020 Bernd Amend and Michael Adam
+/// SPDX-FileCopyrightText: 2014-2020 Bernd Amend, Michael Adam and Stefan Rommel
 /// SPDX-License-Identifier: BSL-1.0
 #pragma once
 
@@ -10,7 +10,7 @@ namespace extension_system {
 class DynamicLibrary final {
 public:
     DynamicLibrary() = default;
-    explicit DynamicLibrary(const std::string& filename);
+    explicit DynamicLibrary(std::string filename);
     DynamicLibrary(DynamicLibrary&&)      = default;
     DynamicLibrary(const DynamicLibrary&) = delete;
     DynamicLibrary& operator=(DynamicLibrary&&) = default;
