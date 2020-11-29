@@ -1,4 +1,4 @@
-Checks: '*,-cppcoreguidelines-pro-bounds-*,-cppcoreguidelines-owning-memory,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-google-build-using-namespace,-*readability-braces-around-statements,-fuchsia-*,-hicpp*,-modernize-use-trailing-return-type,-cppcoreguidelines-pro-type-vararg'
+Checks: '*,-cppcoreguidelines-pro-bounds-*,-llvmlibc-*,-cppcoreguidelines-owning-memory,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-google-build-using-namespace,-*readability-braces-around-statements,-fuchsia-*,-hicpp*,-modernize-use-trailing-return-type,-cppcoreguidelines-pro-type-vararg,-readability-identifier-naming,-readability-function-cognitive-complexity'
 CheckOptions:
   - key:             readability-identifier-naming.NamespaceCase
     value:           lower_case

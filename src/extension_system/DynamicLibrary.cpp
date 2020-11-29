@@ -1,4 +1,4 @@
-/// SPDX-FileCopyrightText: 2014-2020 Bernd Amend and Michael Adam
+/// SPDX-FileCopyrightText: 2014-2020 Bernd Amend, Michael Adam and Stefan Rommel
 /// SPDX-License-Identifier: BSL-1.0
 #include "DynamicLibrary.hpp"
 
@@ -22,13 +22,14 @@
 
 using extension_system::DynamicLibrary;
 
-DynamicLibrary::DynamicLibrary(const std::string& filename)
-    : m_filename(filename) {
+DynamicLibrary::DynamicLibrary(std::string filename)
+    : m_filename{std::move(filename)},
 #ifdef _WIN32
-    m_handle = LoadLibraryA(filename.c_str());
+    m_handle{LoadLibraryA(m_filename.c_str())}
 #else
-    m_handle = dlopen(filename.c_str(), RTLD_LAZY | RTLD_NODELETE);
+    m_handle{dlopen(m_filename.c_str(), RTLD_LAZY | RTLD_NODELETE)}
 #endif
+{
     if (m_handle == nullptr)
         setLastError();
 }
