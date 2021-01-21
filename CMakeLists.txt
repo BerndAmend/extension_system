@@ -132,6 +132,10 @@ add_library(extension_system STATIC
 target_link_libraries(extension_system PUBLIC extension_system_headers
                                        INTERFACE ${CMAKE_DL_LIBS})
 
+if(NOT EXTENSION_SYSTEM_IS_STANDALONE AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "^.*Clang$"))
+    target_compile_options(extension_system PRIVATE -O3 -fno-sanitize=all)
+endif()
+
 option(EXTENSION_SYSTEM_DISABLE_BOOST "" OFF)
 if(NOT EXTENSION_SYSTEM_DISABLE_BOOST)
     find_package(Boost QUIET)
