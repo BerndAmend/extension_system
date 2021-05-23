@@ -7,7 +7,7 @@ project(extension_system)
 if(CMAKE_PROJECT_NAME STREQUAL "extension_system")
     set(EXTENSION_SYSTEM_IS_STANDALONE ON)
     if(NOT DEFINED CMAKE_CXX_STANDARD)
-        set(CMAKE_CXX_STANDARD 11)
+        set(CMAKE_CXX_STANDARD 20) # only 11 is required, 17 in VS
     endif()
 
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
