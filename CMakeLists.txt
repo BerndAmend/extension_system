@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2014-2020 Bernd Amend and Michael Adam
+# SPDX-FileCopyrightText: 2014-2021 Bernd Amend and Michael Adam
 # SPDX-License-Identifier: BSL-1.0
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.19)
 
 project(extension_system)
 
