@@ -16,7 +16,7 @@ TEST_CASE("test if the test file can be loaded") {
     extension_system.setVerifyCompiler(false);
     extension_system.addDynamicLibrary("dummy_test_extension");
     auto e = extension_system.extensions();
-    INFO(messages);
+    INFO(messages)
     REQUIRE(e.size() == 1);
     CHECK(e[0].get("compiler") == "test");
     CHECK(e[0].get("compiler_version") == "1");
@@ -32,7 +32,7 @@ TEST_CASE("all expected extensions were found") {
     extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
     extension_system.searchDirectory(".", true);
     auto e = extension_system.extensions();
-    INFO(messages);
+    INFO(messages)
     CHECK(e.size() == 5);
 
     for (const auto& i : e) {
@@ -66,7 +66,7 @@ TEST_CASE("all expected extensions with a given interface were found") {
     extension_system.setMessageHandler([&](const std::string& msg) { messages += msg + "\n"; });
     extension_system.searchDirectory(".", true);
     auto e = extension_system.extensions<IExt1>();
-    INFO(messages);
+    INFO(messages)
     CHECK(e.size() == 2);
 
     for (const auto& i : e)
@@ -82,7 +82,7 @@ TEST_CASE("load extension by name") {
 
     auto e = extension_system.createExtension<IExt1>("Ext1");
 
-    INFO(messages);
+    INFO(messages)
 
     REQUIRE(e != nullptr);
 
@@ -98,7 +98,7 @@ TEST_CASE("load extension by name and version") {
 
     auto e = extension_system.createExtension<IExt1>("Ext1", 100);
 
-    INFO(messages);
+    INFO(messages)
 
     REQUIRE(e != nullptr);
 
@@ -114,7 +114,7 @@ TEST_CASE("load extension by name 2") {
 
     auto e = extension_system.createExtension<IExt2>("Ext2");
 
-    INFO(messages);
+    INFO(messages)
 
     REQUIRE(e != nullptr);
 
